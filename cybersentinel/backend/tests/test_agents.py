@@ -1,0 +1,152 @@
+"""
+TICKET-015 — TDD tests for Log Parser Agent.
+Red phase: written before implementation exists.
+Agent takes a raw log string and returns a ParsedLog Pydantic model.
+
+NOTE: These tests use mocked LLM responses — no real API calls.
+Real LLM integration is tested in TEST-PHASE-3 smoke test.
+"""
+import pytest
+from unittest.mock import patch, MagicMock
+from datetime import datetime
+from backend.models.logs import ParsedLog, LogType
+from backend.agents.log_parser import LogParserAgent
+
+AUTH_LOG = "2026-04-03 02:47:13 [AUTH] INFO user=admin_john ip=192.168.1.5 event=login status=success session_id=abc12345"
+NGINX_LOG = '2026-04-03 10:22:01 [NGINX] 203.45.12.8 - "GET /api/v1/balance HTTP/1.1" 200 1024B 45ms "Mozilla/5.0"'
+FIREWALL_LOG = "2026-04-03 10:22:05 [FIREWALL] DENY TCP src=198.51.100.42:54321 dst=10.0.0.1:22 bytes=128"
+DATABASE_LOG = "2026-04-03 02:51:44 [DB] INFO user=admin_john query=SELECT * FROM users rows=3400 duration=820ms status=success"
+API_LOG = "2026-04-03 10:22:10 [API-GW] GET /api/v1/transfer status=429 ip=45.33.32.156 latency=12ms request_id=req_abc1"
+
+
+def _make_parsed_log(raw: str, log_type: LogType, **kwargs) -> ParsedLog:
+    return ParsedLog(
+        raw=raw,
+        log_type=log_type,
+        timestamp=datetime(2026, 4, 3, 10, 22, 1),
+        **kwargs
+    )
+
+
+class TestLogParserAgentInit:
+
+    def test_agent_instantiates(self):
+        agent = LogParserAgent()
+        assert agent is not None
+
+    def test_agent_has_parse_method(self):
+        assert hasattr(LogParserAgent(), "parse")
+
+    def test_agent_has_parse_batch_method(self):
+        assert hasattr(LogParserAgent(), "parse_batch")
+
+
+class TestLogParserAgentParse:
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_returns_parsed_log(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(AUTH_LOG, LogType.AUTH, user="admin_john", source_ip="192.168.1.5")
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        result = agent.parse(AUTH_LOG, log_type=LogType.AUTH)
+        assert isinstance(result, ParsedLog)
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_preserves_raw_log(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(AUTH_LOG, LogType.AUTH)
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        result = agent.parse(AUTH_LOG, log_type=LogType.AUTH)
+        assert result.raw == AUTH_LOG
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_sets_correct_log_type(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(FIREWALL_LOG, LogType.FIREWALL)
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        result = agent.parse(FIREWALL_LOG, log_type=LogType.FIREWALL)
+        assert result.log_type == LogType.FIREWALL
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_empty_log_raises(self, mock_llm_class):
+        agent = LogParserAgent()
+        with pytest.raises(ValueError):
+            agent.parse("", log_type=LogType.AUTH)
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_whitespace_only_raises(self, mock_llm_class):
+        agent = LogParserAgent()
+        with pytest.raises(ValueError):
+            agent.parse("   ", log_type=LogType.AUTH)
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_uses_with_structured_output(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(AUTH_LOG, LogType.AUTH)
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        agent.parse(AUTH_LOG, log_type=LogType.AUTH)
+        mock_llm.with_structured_output.assert_called_once_with(ParsedLog)
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_all_five_log_types(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        test_cases = [
+            (AUTH_LOG, LogType.AUTH),
+            (NGINX_LOG, LogType.NGINX),
+            (FIREWALL_LOG, LogType.FIREWALL),
+            (DATABASE_LOG, LogType.DATABASE),
+            (API_LOG, LogType.API),
+        ]
+        for raw_log, log_type in test_cases:
+            mock_chain = MagicMock()
+            mock_chain.invoke.return_value = _make_parsed_log(raw_log, log_type)
+            mock_llm.with_structured_output.return_value = mock_chain
+            agent = LogParserAgent()
+            result = agent.parse(raw_log, log_type=log_type)
+            assert isinstance(result, ParsedLog)
+            assert result.log_type == log_type
+
+
+class TestLogParserAgentBatch:
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_batch_returns_list(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(AUTH_LOG, LogType.AUTH)
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        results = agent.parse_batch([(AUTH_LOG, LogType.AUTH), (DATABASE_LOG, LogType.DATABASE)])
+        assert isinstance(results, list)
+        assert len(results) == 2
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_batch_all_results_are_parsed_logs(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_parsed_log(AUTH_LOG, LogType.AUTH)
+        mock_llm.with_structured_output.return_value = mock_chain
+        agent = LogParserAgent()
+        results = agent.parse_batch([(AUTH_LOG, LogType.AUTH), (NGINX_LOG, LogType.NGINX)])
+        for result in results:
+            assert isinstance(result, ParsedLog)
+
+    @patch("backend.agents.log_parser.ChatOpenAI")
+    def test_parse_batch_empty_list_returns_empty(self, mock_llm_class):
+        agent = LogParserAgent()
+        assert agent.parse_batch([]) == []

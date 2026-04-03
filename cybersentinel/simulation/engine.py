@@ -2,6 +2,7 @@
 TICKET-012 — Simulation Engine Runner.
 Receives a scenario ID, instantiates the right scenario, runs it as a
 background task, and puts logs into an asyncio.Queue for the WS handler.
+Queue is created lazily to avoid event loop binding issues in tests.
 """
 import asyncio
 from simulation.scenarios.account_takeover import AccountTakeoverScenario
@@ -22,10 +23,17 @@ SCENARIO_REGISTRY: dict = {
 class SimulationEngine:
 
     def __init__(self):
-        self.queue: asyncio.Queue = asyncio.Queue()
+        self._queue: asyncio.Queue | None = None
         self.is_running: bool = False
         self.current_scenario_id: str | None = None
         self._task: asyncio.Task | None = None
+
+    @property
+    def queue(self) -> asyncio.Queue:
+        """Lazy queue creation — binds to the running event loop on first access."""
+        if self._queue is None:
+            self._queue = asyncio.Queue()
+        return self._queue
 
     async def start(self, scenario_id: str, speed_multiplier: float = 1.0) -> None:
         if not scenario_id:
@@ -43,6 +51,8 @@ class SimulationEngine:
                 "Call stop() first."
             )
 
+        # Reset queue for new run
+        self._queue = asyncio.Queue()
         scenario = SCENARIO_REGISTRY[scenario_id](speed_multiplier=speed_multiplier)
         self.current_scenario_id = scenario_id
         self.is_running = True

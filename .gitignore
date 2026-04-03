@@ -1,0 +1,13 @@
+# ─── Claude Code local settings ───────────────────────────
+.claude/
+CLAUDE.md
+
+# ─── Environment variables ────────────────────────────────
+.env
+*.env.local
+
+# ─── OS / editor noise ────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

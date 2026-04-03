@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - chromadb
+    volumes:
+      - ./backend:/app
+    networks:
+      - cybersentinel-net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    networks:
+      - cybersentinel-net
+
+  airflow:
+    image: apache/airflow:2.9.1
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - AIRFLOW_UID=${AIRFLOW_UID:-50000}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/tasks:/opt/airflow/tasks
+      - airflow-logs:/opt/airflow/logs
+    env_file:
+      - .env
+    command: >
+      bash -c "airflow db init &&
+               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@cybersentinel.local &&
+               airflow webserver & airflow scheduler"
+    networks:
+      - cybersentinel-net
+
+volumes:
+  chroma-data:
+  airflow-logs:
+
+networks:
+  cybersentinel-net:
+    driver: bridge

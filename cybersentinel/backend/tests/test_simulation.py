@@ -1,12 +1,26 @@
 """
 TICKET-013 — TDD tests for wiring simulation engine to WebSocket.
 Tests cover: POST /attack triggers engine, logs stream via WS, edge cases.
+Updated TICKET-027: POST /attack now accepts prompt + uses AttackPromptInterpreter.
 """
 import json
 import pytest
+from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers.attack import engine
+
+
+def _mock_interpreter(scenario_id: str):
+    mock = MagicMock()
+    mock.interpret.return_value = MagicMock(
+        scenario_id=scenario_id,
+        attack_type=MagicMock(value="brute_force"),
+        target_service="auth",
+        intensity="high",
+        reasoning="test",
+    )
+    return mock
 
 
 @pytest.fixture(autouse=True)
@@ -25,48 +39,53 @@ def reset_engine():
 
 class TestAttackEndpoint:
 
-    def test_post_attack_returns_200_for_valid_scenario(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_attack_returns_200_for_valid_scenario(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("account_takeover")
         with TestClient(app) as client:
-            res = client.post("/attack", json={"scenario_id": "account_takeover"})
+            res = client.post("/attack", json={"prompt": "brute force the login"})
             assert res.status_code == 200
 
-    def test_post_attack_returns_scenario_id_in_response(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_attack_returns_scenario_id_in_response(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("sql_injection")
         with TestClient(app) as client:
-            res = client.post("/attack", json={"scenario_id": "sql_injection"})
+            res = client.post("/attack", json={"prompt": "inject SQL into the database"})
             assert res.json()["scenario_id"] == "sql_injection"
 
-    def test_post_attack_returns_status_started(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_attack_returns_status_started(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("ddos_attack")
         with TestClient(app) as client:
-            res = client.post("/attack", json={"scenario_id": "ddos_attack"})
+            res = client.post("/attack", json={"prompt": "flood the server with traffic"})
             assert res.json()["status"] == "started"
 
-    def test_post_attack_unknown_scenario_returns_400(self):
-        with TestClient(app) as client:
-            res = client.post("/attack", json={"scenario_id": "unknown_attack"})
-            assert res.status_code == 400
-
-    def test_post_attack_missing_scenario_id_returns_422(self):
+    def test_post_attack_missing_prompt_returns_422(self):
         with TestClient(app) as client:
             res = client.post("/attack", json={})
             assert res.status_code == 422
 
-    def test_post_attack_empty_scenario_id_returns_400(self):
+    def test_post_attack_empty_prompt_returns_400(self):
         with TestClient(app) as client:
-            res = client.post("/attack", json={"scenario_id": ""})
+            res = client.post("/attack", json={"prompt": ""})
             assert res.status_code == 400
 
-    def test_post_attack_while_running_returns_409(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_attack_while_running_returns_409(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("account_takeover")
         with TestClient(app) as client:
-            client.post("/attack", json={"scenario_id": "account_takeover"})
-            res = client.post("/attack", json={"scenario_id": "ddos_attack"})
+            client.post("/attack", json={"prompt": "brute force login"})
+            res = client.post("/attack", json={"prompt": "flood the server"})
             assert res.status_code == 409
 
 
 class TestStopEndpoint:
 
-    def test_post_stop_returns_200(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_stop_returns_200(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("account_takeover")
         with TestClient(app) as client:
-            client.post("/attack", json={"scenario_id": "account_takeover"})
+            client.post("/attack", json={"prompt": "brute force login"})
             res = client.post("/stop")
             assert res.status_code == 200
 
@@ -75,9 +94,11 @@ class TestStopEndpoint:
             res = client.post("/stop")
             assert res.status_code == 200
 
-    def test_post_stop_returns_stopped_status(self):
+    @patch("routers.attack.AttackPromptInterpreter")
+    def test_post_stop_returns_stopped_status(self, mock_cls):
+        mock_cls.return_value = _mock_interpreter("sql_injection")
         with TestClient(app) as client:
-            client.post("/attack", json={"scenario_id": "sql_injection"})
+            client.post("/attack", json={"prompt": "inject SQL"})
             res = client.post("/stop")
             assert res.json()["status"] == "stopped"
 

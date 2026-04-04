@@ -3,6 +3,7 @@ import './index.css'
 import { CompanyDashboard } from './components/NovaPay/CompanyDashboard'
 import { PromptInput } from './components/AttackConsole/PromptInput'
 import { AlertWindow } from './components/CyberSentinel/AlertWindow'
+import { LogTerminal } from './components/CyberSentinel/LogTerminal'
 import { useWebSocket } from './hooks/useWebSocket'
 
 function App() {
@@ -46,7 +47,8 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CompanyDashboard isAttackRunning={isAttackRunning} attackInfo={attackInfo} />
           <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
-            {/* TICKET-036 LogTerminal, TICKET-037 ThreatCard, TICKET-038 RemediationPanel go here */}
+            <LogTerminal logs={logs} />
+            {/* TICKET-037 ThreatCard, TICKET-038 RemediationPanel go here */}
           </AlertWindow>
         </div>
 

@@ -1,3 +1,11 @@
+import { useState, useEffect } from 'react'
+
+const HEALTHY_BASE = { txPerSec: 42, activeUsers: 1284, apiLatencyMs: 38, uptimePct: 99.97 }
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
 const DEPARTMENTS = [
   { id: 'payments', label: 'Payments', icon: '💳' },
   { id: 'auth', label: 'Authentication', icon: '🔐' },
@@ -7,10 +15,28 @@ const DEPARTMENTS = [
 ]
 
 export function CompanyDashboard({ departmentStatuses = {}, isAttackRunning = false, metrics = {} }) {
-  const txPerSec = metrics.txPerSec ?? 42
-  const activeUsers = metrics.activeUsers ?? 1284
-  const apiLatencyMs = metrics.apiLatencyMs ?? 38
-  const uptimePct = metrics.uptimePct ?? 99.97
+  const [idleMetrics, setIdleMetrics] = useState(HEALTHY_BASE)
+
+  // Gentle idle drift — only when no attack is running
+  useEffect(() => {
+    if (isAttackRunning) return
+    const t = setInterval(() => {
+      setIdleMetrics((prev) => ({
+        txPerSec:     Math.max(28, prev.txPerSec     + rand(-3, 4)),
+        activeUsers:  Math.max(1100, prev.activeUsers + rand(-8, 10)),
+        apiLatencyMs: Math.max(22, prev.apiLatencyMs  + rand(-3, 4)),
+        uptimePct:    99.97,
+      }))
+    }, 1200)
+    return () => clearInterval(t)
+  }, [isAttackRunning])
+
+  // Use backend metrics during attack, idle drift otherwise
+  const display = isAttackRunning ? metrics : idleMetrics
+  const txPerSec    = display.txPerSec    ?? HEALTHY_BASE.txPerSec
+  const activeUsers = display.activeUsers ?? HEALTHY_BASE.activeUsers
+  const apiLatencyMs = display.apiLatencyMs ?? HEALTHY_BASE.apiLatencyMs
+  const uptimePct   = display.uptimePct   ?? HEALTHY_BASE.uptimePct
 
   const isUnderAttack = isAttackRunning
 

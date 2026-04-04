@@ -31,20 +31,14 @@ export function CompanyDashboard({ departmentStatuses = {}, isAttackRunning = fa
   const [metrics, setMetrics] = useState(HEALTHY_METRICS)
   const [attackProgress, setAttackProgress] = useState(0) // 0 → 1 ramp over time
 
-  // Ramp attack intensity up when running, back to 0 when stopped
+  // Ramp attack intensity up when running, snap back to 0 when stopped
   useEffect(() => {
     if (!isAttackRunning) {
-      // Gradually recover back to healthy
-      const recovery = setInterval(() => {
-        setAttackProgress((prev) => {
-          if (prev <= 0) { clearInterval(recovery); return 0 }
-          return Math.max(0, prev - 0.05)
-        })
-      }, 300)
-      return () => clearInterval(recovery)
+      setAttackProgress(0)
+      setMetrics(HEALTHY_METRICS)
+      return
     }
 
-    // Ramp up during attack
     const ramp = setInterval(() => {
       setAttackProgress((prev) => Math.min(1, prev + 0.04))
     }, 500)

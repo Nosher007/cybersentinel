@@ -407,3 +407,163 @@ class TestSeverityClassifierAgentClassify:
             agent = SeverityClassifierAgent()
             result = agent.classify(_make_threat_event())
             assert result.severity == severity
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TICKET-018 — Remediation Agent Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from backend.models.remediation import RemediationPlan, RemediationStep
+from backend.agents.remediation import RemediationAgent
+
+
+def _make_remediation_step(order: int = 1, immediate: bool = True) -> RemediationStep:
+    return RemediationStep(
+        order=order,
+        action="Block source IP at firewall",
+        detail="Add rule to block 45.33.32.156 on all inbound ports via iptables",
+        is_immediate=immediate,
+    )
+
+
+def _make_remediation_plan() -> RemediationPlan:
+    import uuid
+    return RemediationPlan(
+        plan_id=str(uuid.uuid4()),
+        threat=_make_scored_threat(),
+        immediate_steps=[_make_remediation_step(1, True), _make_remediation_step(2, True)],
+        hardening_steps=[_make_remediation_step(3, False)],
+        cve_references=["CVE-2021-44228", "OWASP-A07"],
+        summary="Brute force attack detected on auth service. Block IP, reset credentials, enable MFA.",
+    )
+
+
+class TestRemediationAgentInit:
+
+    def test_agent_instantiates(self):
+        assert RemediationAgent() is not None
+
+    def test_agent_has_remediate_method(self):
+        assert hasattr(RemediationAgent(), "remediate")
+
+
+class TestRemediationAgentRemediate:
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_returns_remediation_plan(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert isinstance(result, RemediationPlan)
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_uses_with_structured_output(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        agent.remediate(_make_scored_threat())
+        mock_llm.with_structured_output.assert_called_once_with(RemediationPlan)
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_has_immediate_steps(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert len(result.immediate_steps) > 0
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_has_hardening_steps(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert len(result.hardening_steps) > 0
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_has_cve_references(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert isinstance(result.cve_references, list)
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_has_summary(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert result.summary and len(result.summary) > 0
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_preserves_scored_threat(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert isinstance(result.threat, ScoredThreat)
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_queries_chromadb(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        with patch("backend.agents.remediation.get_collection") as mock_col:
+            mock_col.return_value.query.return_value = {
+                "documents": [["CVE-2021-44228 brute force remediation steps"]],
+                "ids": [["CVE-2021-44228"]],
+            }
+            agent = RemediationAgent()
+            agent.remediate(_make_scored_threat())
+            mock_col.return_value.query.assert_called_once()
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_remediate_none_raises(self, mock_llm_class):
+        agent = RemediationAgent()
+        with pytest.raises((ValueError, AttributeError, TypeError)):
+            agent.remediate(None)
+
+    @patch("backend.agents.remediation.ChatGoogleGenerativeAI")
+    def test_immediate_steps_are_remediation_step_instances(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_remediation_plan()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = RemediationAgent()
+        result = agent.remediate(_make_scored_threat())
+        assert all(isinstance(s, RemediationStep) for s in result.immediate_steps)

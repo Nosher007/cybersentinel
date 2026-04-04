@@ -4,6 +4,7 @@ import { CompanyDashboard } from './components/NovaPay/CompanyDashboard'
 import { PromptInput } from './components/AttackConsole/PromptInput'
 import { AlertWindow } from './components/CyberSentinel/AlertWindow'
 import { LogTerminal } from './components/CyberSentinel/LogTerminal'
+import { ThreatCard } from './components/CyberSentinel/ThreatCard'
 import { useWebSocket } from './hooks/useWebSocket'
 
 function App() {
@@ -48,7 +49,8 @@ function App() {
           <CompanyDashboard isAttackRunning={isAttackRunning} attackInfo={attackInfo} />
           <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
             <LogTerminal logs={logs} />
-            {/* TICKET-037 ThreatCard, TICKET-038 RemediationPanel go here */}
+            {threat && <ThreatCard threat={threat} />}
+            {/* TICKET-038 RemediationPanel goes here */}
           </AlertWindow>
         </div>
 

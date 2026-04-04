@@ -39,7 +39,7 @@ CLASSIFY_PROMPT = ChatPromptTemplate.from_messages([
 
 class SeverityClassifierAgent:
 
-    def __init__(self, model: str = "gemini-1.5-flash"):
+    def __init__(self, model: str = "gemini-2.5-flash"):
         self._llm = ChatGoogleGenerativeAI(
             model=model,
             temperature=0,

@@ -284,3 +284,126 @@ class TestThreatDetectorAgentDetect:
         agent = ThreatDetectorAgent()
         with pytest.raises((ValueError, AttributeError, TypeError)):
             agent.detect(["not a parsed log", "also not"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TICKET-017 — Severity Classifier Agent Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from backend.models.threats import ScoredThreat, Severity
+from backend.agents.severity_classifier import SeverityClassifierAgent
+
+
+def _make_scored_threat(severity: Severity = Severity.CRITICAL) -> ScoredThreat:
+    return ScoredThreat(
+        threat=_make_threat_event(),
+        severity=severity,
+        score=9.5,
+        justification="Multiple failed logins from single IP indicating brute force",
+        blast_radius=["auth", "transaction_engine"],
+    )
+
+
+class TestSeverityClassifierAgentInit:
+
+    def test_agent_instantiates(self):
+        assert SeverityClassifierAgent() is not None
+
+    def test_agent_has_classify_method(self):
+        assert hasattr(SeverityClassifierAgent(), "classify")
+
+
+class TestSeverityClassifierAgentClassify:
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_returns_scored_threat(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        result = agent.classify(_make_threat_event())
+        assert isinstance(result, ScoredThreat)
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_uses_with_structured_output(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        agent.classify(_make_threat_event())
+        mock_llm.with_structured_output.assert_called_once_with(ScoredThreat)
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_severity_is_valid_enum(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat(Severity.HIGH)
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        result = agent.classify(_make_threat_event())
+        assert result.severity in list(Severity)
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_score_in_valid_range(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        result = agent.classify(_make_threat_event())
+        assert 0.0 <= result.score <= 10.0
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_has_justification(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        result = agent.classify(_make_threat_event())
+        assert result.justification and len(result.justification) > 0
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_preserves_original_threat(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        threat = _make_threat_event()
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_scored_threat()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = SeverityClassifierAgent()
+        result = agent.classify(threat)
+        assert isinstance(result.threat, ThreatEvent)
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_none_raises(self, mock_llm_class):
+        agent = SeverityClassifierAgent()
+        with pytest.raises((ValueError, AttributeError, TypeError)):
+            agent.classify(None)
+
+    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    def test_classify_all_severities_accepted(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+
+        for severity in Severity:
+            mock_chain = MagicMock()
+            mock_chain.invoke.return_value = _make_scored_threat(severity)
+            mock_llm.with_structured_output.return_value = mock_chain
+
+            agent = SeverityClassifierAgent()
+            result = agent.classify(_make_threat_event())
+            assert result.severity == severity

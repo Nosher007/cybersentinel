@@ -38,50 +38,52 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+try:
+    from backend.agents.orchestrator import build_pipeline
+except ModuleNotFoundError:
+    from agents.orchestrator import build_pipeline
+
+
 def _run_agent_pipeline(collected_logs: list[tuple[str, str]]) -> dict | None:
     """Synchronous — runs in thread pool via run_in_executor."""
-    try:
-        from backend.agents.orchestrator import build_pipeline
-        from backend.models.logs import LogType
-    except ModuleNotFoundError:
-        from agents.orchestrator import build_pipeline
-        from models.logs import LogType
-
     if not collected_logs:
         return None
 
-    pipeline = build_pipeline()
-    result = pipeline.invoke({"raw_logs": collected_logs})
+    try:
+        pipeline = build_pipeline()
+        result = pipeline.invoke({"raw_logs": collected_logs})
 
-    if result.get("error"):
-        return {"error": result["error"]}
+        if result.get("error"):
+            return {"error": result["error"]}
 
-    plan = result["remediation_plan"]
-    threat = result["scored_threat"]
+        plan = result["remediation_plan"]
+        threat = result["scored_threat"]
 
-    return {
-        "threat": {
-            "attack_type": threat.threat.attack_type.value,
-            "affected_service": threat.threat.affected_service,
-            "severity": threat.severity.value,
-            "score": threat.score,
-            "justification": threat.justification,
-            "blast_radius": threat.blast_radius,
-        },
-        "remediation": {
-            "plan_id": plan.plan_id,
-            "summary": plan.summary,
-            "immediate_steps": [
-                {"order": s.order, "action": s.action, "detail": s.detail}
-                for s in plan.immediate_steps
-            ],
-            "hardening_steps": [
-                {"order": s.order, "action": s.action, "detail": s.detail}
-                for s in plan.hardening_steps
-            ],
-            "cve_references": plan.cve_references,
-        },
-    }
+        return {
+            "threat": {
+                "attack_type": threat.threat.attack_type.value,
+                "affected_service": threat.threat.affected_service,
+                "severity": threat.severity.value,
+                "score": threat.score,
+                "justification": threat.justification,
+                "blast_radius": threat.blast_radius,
+            },
+            "remediation": {
+                "plan_id": plan.plan_id,
+                "summary": plan.summary,
+                "immediate_steps": [
+                    {"order": s.order, "action": s.action, "detail": s.detail}
+                    for s in plan.immediate_steps
+                ],
+                "hardening_steps": [
+                    {"order": s.order, "action": s.action, "detail": s.detail}
+                    for s in plan.hardening_steps
+                ],
+                "cve_references": plan.cve_references,
+            },
+        }
+    except Exception as exc:
+        return {"error": f"Agent pipeline failed: {exc}"}
 
 
 async def broadcast_from_engine():

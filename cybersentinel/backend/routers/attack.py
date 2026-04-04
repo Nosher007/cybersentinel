@@ -34,9 +34,12 @@ async def start_attack(req: AttackRequest):
         )
 
     interpreter = AttackPromptInterpreter()
-    interpreted = await asyncio.get_event_loop().run_in_executor(
-        None, interpreter.interpret, req.prompt
-    )
+    try:
+        interpreted = await asyncio.get_event_loop().run_in_executor(
+            None, interpreter.interpret, req.prompt
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Prompt interpretation failed: {exc}")
 
     scenario_id = interpreted.scenario_id
     await engine.start(scenario_id)

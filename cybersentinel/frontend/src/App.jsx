@@ -5,6 +5,7 @@ import { PromptInput } from './components/AttackConsole/PromptInput'
 import { AlertWindow } from './components/CyberSentinel/AlertWindow'
 import { LogTerminal } from './components/CyberSentinel/LogTerminal'
 import { ThreatCard } from './components/CyberSentinel/ThreatCard'
+import { RemediationPanel } from './components/CyberSentinel/RemediationPanel'
 import { useWebSocket } from './hooks/useWebSocket'
 
 function App() {
@@ -50,7 +51,7 @@ function App() {
           <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
             <LogTerminal logs={logs} />
             {threat && <ThreatCard threat={threat} />}
-            {/* TICKET-038 RemediationPanel goes here */}
+            {remediation && <RemediationPanel remediation={remediation} />}
           </AlertWindow>
         </div>
 

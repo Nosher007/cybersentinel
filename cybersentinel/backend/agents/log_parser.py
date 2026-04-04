@@ -4,7 +4,7 @@ Takes a raw log string and returns a structured ParsedLog Pydantic model
 using LangChain with_structured_output() — no free-form text.
 """
 import os
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from backend.models.logs import ParsedLog, LogType
 
@@ -20,11 +20,11 @@ PARSE_PROMPT = ChatPromptTemplate.from_messages([
 
 class LogParserAgent:
 
-    def __init__(self, model: str = "gpt-4o-mini"):
-        self._llm = ChatOpenAI(
+    def __init__(self, model: str = "gemini-1.5-flash"):
+        self._llm = ChatGoogleGenerativeAI(
             model=model,
             temperature=0,
-            api_key=os.getenv("OPENAI_API_KEY", "sk-placeholder"),
+            google_api_key=os.getenv("GOOGLE_API_KEY", "placeholder"),
         )
 
     def parse(self, raw_log: str, log_type: LogType) -> ParsedLog:

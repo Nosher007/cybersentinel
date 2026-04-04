@@ -43,7 +43,7 @@ class TestLogParserAgentInit:
 
 class TestLogParserAgentParse:
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_returns_parsed_log(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -54,7 +54,7 @@ class TestLogParserAgentParse:
         result = agent.parse(AUTH_LOG, log_type=LogType.AUTH)
         assert isinstance(result, ParsedLog)
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_preserves_raw_log(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -65,7 +65,7 @@ class TestLogParserAgentParse:
         result = agent.parse(AUTH_LOG, log_type=LogType.AUTH)
         assert result.raw == AUTH_LOG
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_sets_correct_log_type(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -76,19 +76,19 @@ class TestLogParserAgentParse:
         result = agent.parse(FIREWALL_LOG, log_type=LogType.FIREWALL)
         assert result.log_type == LogType.FIREWALL
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_empty_log_raises(self, mock_llm_class):
         agent = LogParserAgent()
         with pytest.raises(ValueError):
             agent.parse("", log_type=LogType.AUTH)
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_whitespace_only_raises(self, mock_llm_class):
         agent = LogParserAgent()
         with pytest.raises(ValueError):
             agent.parse("   ", log_type=LogType.AUTH)
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_uses_with_structured_output(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -99,7 +99,7 @@ class TestLogParserAgentParse:
         agent.parse(AUTH_LOG, log_type=LogType.AUTH)
         mock_llm.with_structured_output.assert_called_once_with(ParsedLog)
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_all_five_log_types(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -122,7 +122,7 @@ class TestLogParserAgentParse:
 
 class TestLogParserAgentBatch:
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_batch_returns_list(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -134,7 +134,7 @@ class TestLogParserAgentBatch:
         assert isinstance(results, list)
         assert len(results) == 2
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_batch_all_results_are_parsed_logs(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -146,7 +146,7 @@ class TestLogParserAgentBatch:
         for result in results:
             assert isinstance(result, ParsedLog)
 
-    @patch("backend.agents.log_parser.ChatOpenAI")
+    @patch("backend.agents.log_parser.ChatGoogleGenerativeAI")
     def test_parse_batch_empty_list_returns_empty(self, mock_llm_class):
         agent = LogParserAgent()
         assert agent.parse_batch([]) == []
@@ -195,7 +195,7 @@ class TestThreatDetectorAgentInit:
 
 class TestThreatDetectorAgentDetect:
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_returns_threat_event(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -207,7 +207,7 @@ class TestThreatDetectorAgentDetect:
         result = agent.detect(_make_brute_force_logs())
         assert isinstance(result, ThreatEvent)
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_uses_with_structured_output(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -219,13 +219,13 @@ class TestThreatDetectorAgentDetect:
         agent.detect(_make_brute_force_logs())
         mock_llm.with_structured_output.assert_called_once_with(ThreatEvent)
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_empty_logs_raises(self, mock_llm_class):
         agent = ThreatDetectorAgent()
         with pytest.raises(ValueError):
             agent.detect([])
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_result_has_evidence_logs(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -237,7 +237,7 @@ class TestThreatDetectorAgentDetect:
         result = agent.detect(_make_brute_force_logs())
         assert len(result.evidence_logs) > 0
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_result_has_attack_type(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -249,7 +249,7 @@ class TestThreatDetectorAgentDetect:
         result = agent.detect(_make_brute_force_logs())
         assert result.attack_type in list(AttackType)
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_result_has_affected_service(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -261,7 +261,7 @@ class TestThreatDetectorAgentDetect:
         result = agent.detect(_make_brute_force_logs())
         assert result.affected_service
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_queries_chromadb_for_context(self, mock_llm_class):
         """Threat detector must query ChromaDB — RAG enrichment."""
         mock_llm = MagicMock()
@@ -279,7 +279,7 @@ class TestThreatDetectorAgentDetect:
             agent.detect(_make_brute_force_logs())
             mock_col.return_value.query.assert_called_once()
 
-    @patch("backend.agents.threat_detector.ChatOpenAI")
+    @patch("backend.agents.threat_detector.ChatGoogleGenerativeAI")
     def test_detect_non_parsed_log_list_raises(self, mock_llm_class):
         agent = ThreatDetectorAgent()
         with pytest.raises((ValueError, AttributeError, TypeError)):
@@ -315,7 +315,7 @@ class TestSeverityClassifierAgentInit:
 
 class TestSeverityClassifierAgentClassify:
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_returns_scored_threat(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -327,7 +327,7 @@ class TestSeverityClassifierAgentClassify:
         result = agent.classify(_make_threat_event())
         assert isinstance(result, ScoredThreat)
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_uses_with_structured_output(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -339,7 +339,7 @@ class TestSeverityClassifierAgentClassify:
         agent.classify(_make_threat_event())
         mock_llm.with_structured_output.assert_called_once_with(ScoredThreat)
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_severity_is_valid_enum(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -351,7 +351,7 @@ class TestSeverityClassifierAgentClassify:
         result = agent.classify(_make_threat_event())
         assert result.severity in list(Severity)
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_score_in_valid_range(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -363,7 +363,7 @@ class TestSeverityClassifierAgentClassify:
         result = agent.classify(_make_threat_event())
         assert 0.0 <= result.score <= 10.0
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_has_justification(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -375,7 +375,7 @@ class TestSeverityClassifierAgentClassify:
         result = agent.classify(_make_threat_event())
         assert result.justification and len(result.justification) > 0
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_preserves_original_threat(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
@@ -388,13 +388,13 @@ class TestSeverityClassifierAgentClassify:
         result = agent.classify(threat)
         assert isinstance(result.threat, ThreatEvent)
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_none_raises(self, mock_llm_class):
         agent = SeverityClassifierAgent()
         with pytest.raises((ValueError, AttributeError, TypeError)):
             agent.classify(None)
 
-    @patch("backend.agents.severity_classifier.ChatOpenAI")
+    @patch("backend.agents.severity_classifier.ChatGoogleGenerativeAI")
     def test_classify_all_severities_accepted(self, mock_llm_class):
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm

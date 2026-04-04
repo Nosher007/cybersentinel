@@ -685,3 +685,149 @@ class TestOrchestratorRun:
         result = graph.invoke({"raw_logs": []})
 
         assert result.get("error") is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TICKET-020 — Attack Prompt Interpreter Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from backend.agents.prompt_interpreter import AttackPromptInterpreter, InterpretedAttack
+from backend.models.threats import AttackType
+
+
+VALID_SCENARIO_IDS = {
+    "account_takeover",
+    "transaction_fraud",
+    "sql_injection",
+    "insider_threat",
+    "ddos_attack",
+}
+
+
+def _make_interpreted_attack(
+    scenario_id: str = "account_takeover",
+    attack_type: AttackType = AttackType.BRUTE_FORCE,
+) -> InterpretedAttack:
+    return InterpretedAttack(
+        attack_type=attack_type,
+        target_service="auth",
+        intensity="high",
+        scenario_id=scenario_id,
+        reasoning="Multiple failed login attempts suggest brute force on auth service",
+    )
+
+
+class TestAttackPromptInterpreterInit:
+
+    def test_agent_instantiates(self):
+        assert AttackPromptInterpreter() is not None
+
+    def test_agent_has_interpret_method(self):
+        assert hasattr(AttackPromptInterpreter(), "interpret")
+
+
+class TestAttackPromptInterpreterInterpret:
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_returns_interpreted_attack(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("try to brute force the login")
+        assert isinstance(result, InterpretedAttack)
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_uses_with_structured_output(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        agent.interpret("flood the payment server")
+        mock_llm.with_structured_output.assert_called_once_with(InterpretedAttack)
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_scenario_id_is_valid(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack("ddos_attack")
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("flood the server with traffic")
+        assert result.scenario_id in VALID_SCENARIO_IDS
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_has_target_service(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("hack the login system")
+        assert result.target_service and len(result.target_service) > 0
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_has_intensity(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("gently probe the API")
+        assert result.intensity in ("low", "medium", "high")
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_has_reasoning(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("steal customer credit card data")
+        assert result.reasoning and len(result.reasoning) > 0
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_empty_prompt_raises(self, mock_llm_class):
+        agent = AttackPromptInterpreter()
+        with pytest.raises(ValueError):
+            agent.interpret("")
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_attack_type_is_valid_enum(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_interpreted_attack()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = AttackPromptInterpreter()
+        result = agent.interpret("try to brute force the login")
+        assert result.attack_type in list(AttackType)
+
+    @patch("backend.agents.prompt_interpreter.ChatGoogleGenerativeAI")
+    def test_interpret_all_scenario_ids_mappable(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+
+        for scenario_id in VALID_SCENARIO_IDS:
+            mock_chain = MagicMock()
+            mock_chain.invoke.return_value = _make_interpreted_attack(scenario_id)
+            mock_llm.with_structured_output.return_value = mock_chain
+
+            agent = AttackPromptInterpreter()
+            result = agent.interpret("some attack prompt")
+            assert result.scenario_id == scenario_id

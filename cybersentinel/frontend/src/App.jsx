@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './index.css'
 import { CompanyDashboard } from './components/NovaPay/CompanyDashboard'
 import { PromptInput } from './components/AttackConsole/PromptInput'
+import { AlertWindow } from './components/CyberSentinel/AlertWindow'
 import { useWebSocket } from './hooks/useWebSocket'
 
 function App() {
@@ -44,10 +45,9 @@ function App() {
         {/* Main layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CompanyDashboard isAttackRunning={isAttackRunning} attackInfo={attackInfo} />
-          {/* CyberSentinel panel — TICKET-035 */}
-          <div className="bg-[#0d1324] border border-[#1e2d4a] rounded-xl p-5 flex items-center justify-center min-h-[400px]">
-            <p className="text-slate-600 text-sm">CyberSentinel alert window — coming in TICKET-035</p>
-          </div>
+          <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
+            {/* TICKET-036 LogTerminal, TICKET-037 ThreatCard, TICKET-038 RemediationPanel go here */}
+          </AlertWindow>
         </div>
 
         {/* Attack prompt */}

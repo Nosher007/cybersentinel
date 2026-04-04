@@ -44,12 +44,13 @@ app.add_middleware(
 )
 
 try:
-    from routers import websocket, attack
+    from routers import websocket, attack, threats
 except ModuleNotFoundError:
-    from backend.routers import websocket, attack
+    from backend.routers import websocket, attack, threats
 
 app.include_router(websocket.router)
 app.include_router(attack.router)
+app.include_router(threats.router)
 
 
 @app.get("/health")

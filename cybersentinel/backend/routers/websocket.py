@@ -40,8 +40,10 @@ manager = ConnectionManager()
 
 try:
     from backend.agents.orchestrator import build_pipeline
+    from backend.routers.threats import threat_store
 except ModuleNotFoundError:
     from agents.orchestrator import build_pipeline
+    from routers.threats import threat_store
 
 
 def _run_agent_pipeline(collected_logs: list[tuple[str, str]]) -> dict | None:
@@ -59,15 +61,18 @@ def _run_agent_pipeline(collected_logs: list[tuple[str, str]]) -> dict | None:
         plan = result["remediation_plan"]
         threat = result["scored_threat"]
 
+        threat_record = {
+            "attack_type": threat.threat.attack_type.value,
+            "affected_service": threat.threat.affected_service,
+            "severity": threat.severity.value,
+            "score": threat.score,
+            "justification": threat.justification,
+            "blast_radius": threat.blast_radius,
+        }
+        threat_store.append(threat_record)
+
         return {
-            "threat": {
-                "attack_type": threat.threat.attack_type.value,
-                "affected_service": threat.threat.affected_service,
-                "severity": threat.severity.value,
-                "score": threat.score,
-                "justification": threat.justification,
-                "blast_radius": threat.blast_radius,
-            },
+            "threat": threat_record,
             "remediation": {
                 "plan_id": plan.plan_id,
                 "summary": plan.summary,

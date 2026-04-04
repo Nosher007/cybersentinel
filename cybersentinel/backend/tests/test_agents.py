@@ -150,3 +150,137 @@ class TestLogParserAgentBatch:
     def test_parse_batch_empty_list_returns_empty(self, mock_llm_class):
         agent = LogParserAgent()
         assert agent.parse_batch([]) == []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TICKET-016 — Threat Detector Agent Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from backend.models.threats import ThreatEvent, AttackType
+from backend.agents.threat_detector import ThreatDetectorAgent
+import uuid
+
+
+def _make_brute_force_logs() -> list:
+    logs = []
+    for i in range(10):
+        logs.append(_make_parsed_log(
+            f"2026-04-03 10:0{i}:00 [AUTH] WARN user=victim ip=45.33.32.156 event=login status=failed attempt={i+1}",
+            LogType.AUTH,
+            user="victim",
+            source_ip="45.33.32.156",
+            action="login",
+        ))
+    return logs
+
+
+def _make_threat_event(attack_type: AttackType = AttackType.BRUTE_FORCE) -> ThreatEvent:
+    return ThreatEvent(
+        threat_id=str(uuid.uuid4()),
+        attack_type=attack_type,
+        affected_service="auth",
+        evidence_logs=_make_brute_force_logs()[:3],
+        description="Multiple failed login attempts detected from single IP",
+    )
+
+
+class TestThreatDetectorAgentInit:
+
+    def test_agent_instantiates(self):
+        assert ThreatDetectorAgent() is not None
+
+    def test_agent_has_detect_method(self):
+        assert hasattr(ThreatDetectorAgent(), "detect")
+
+
+class TestThreatDetectorAgentDetect:
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_returns_threat_event(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = ThreatDetectorAgent()
+        result = agent.detect(_make_brute_force_logs())
+        assert isinstance(result, ThreatEvent)
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_uses_with_structured_output(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = ThreatDetectorAgent()
+        agent.detect(_make_brute_force_logs())
+        mock_llm.with_structured_output.assert_called_once_with(ThreatEvent)
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_empty_logs_raises(self, mock_llm_class):
+        agent = ThreatDetectorAgent()
+        with pytest.raises(ValueError):
+            agent.detect([])
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_result_has_evidence_logs(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = ThreatDetectorAgent()
+        result = agent.detect(_make_brute_force_logs())
+        assert len(result.evidence_logs) > 0
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_result_has_attack_type(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event(AttackType.BRUTE_FORCE)
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = ThreatDetectorAgent()
+        result = agent.detect(_make_brute_force_logs())
+        assert result.attack_type in list(AttackType)
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_result_has_affected_service(self, mock_llm_class):
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        agent = ThreatDetectorAgent()
+        result = agent.detect(_make_brute_force_logs())
+        assert result.affected_service
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_queries_chromadb_for_context(self, mock_llm_class):
+        """Threat detector must query ChromaDB — RAG enrichment."""
+        mock_llm = MagicMock()
+        mock_llm_class.return_value = mock_llm
+        mock_chain = MagicMock()
+        mock_chain.invoke.return_value = _make_threat_event()
+        mock_llm.with_structured_output.return_value = mock_chain
+
+        with patch("backend.agents.threat_detector.get_collection") as mock_col:
+            mock_col.return_value.query.return_value = {
+                "documents": [["CVE-2021-44228 brute force auth"]],
+                "ids": [["CVE-2021-44228"]],
+            }
+            agent = ThreatDetectorAgent()
+            agent.detect(_make_brute_force_logs())
+            mock_col.return_value.query.assert_called_once()
+
+    @patch("backend.agents.threat_detector.ChatOpenAI")
+    def test_detect_non_parsed_log_list_raises(self, mock_llm_class):
+        agent = ThreatDetectorAgent()
+        with pytest.raises((ValueError, AttributeError, TypeError)):
+            agent.detect(["not a parsed log", "also not"])

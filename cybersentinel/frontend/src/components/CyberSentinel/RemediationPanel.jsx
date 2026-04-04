@@ -112,19 +112,26 @@ export function RemediationPanel({ remediation }) {
 }
 
 function StepRow({ step, show, color }) {
-  const colors = {
-    emerald: 'bg-emerald-500',
-    cyan: 'bg-cyan-500',
-  }
+  const [popped, setPopped] = useState(false)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    if (!show) return
+    const t1 = setTimeout(() => setPopped(true), 50)
+    const t2 = setTimeout(() => setChecked(true), 450)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [show])
+
+  const bgColors = { emerald: 'bg-emerald-500', cyan: 'bg-cyan-500' }
 
   return (
-    <div
-      className={`transition-all duration-500 ${
-        show ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
-      } flex gap-3 items-start`}
-    >
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${colors[color]}`}>
-        <span className="text-white text-xs font-bold">{step.order}</span>
+    <div className={`transition-all duration-500 ${
+      show ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
+    } flex gap-3 items-start`}>
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${bgColors[color]} ${popped ? 'step-pop' : ''}`}>
+        <span className="text-white text-xs font-bold">
+          {checked ? '✓' : step.order}
+        </span>
       </div>
       <div>
         <div className="text-slate-300 text-xs font-semibold">{step.action}</div>

@@ -2,18 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const WS_URL = 'ws://localhost:8000/ws'
 
-/**
- * useWebSocket — connects to the CyberSentinel backend WebSocket.
- *
- * Returns:
- *   logs        — array of raw log strings
- *   status      — latest status string (e.g. "simulation_complete")
- *   threat      — latest threat_detected payload object
- *   remediation — latest remediation_plan payload object
- *   pipelineError — latest pipeline_error string
- *   isConnected — boolean
- *   clearState  — reset all accumulated state
- */
+const HEALTHY_METRICS = {
+  txPerSec: 42,
+  activeUsers: 1284,
+  apiLatencyMs: 38,
+  uptimePct: 99.97,
+}
+
 export function useWebSocket() {
   const [logs, setLogs] = useState([])
   const [status, setStatus] = useState(null)
@@ -21,6 +16,7 @@ export function useWebSocket() {
   const [remediation, setRemediation] = useState(null)
   const [pipelineError, setPipelineError] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [metrics, setMetrics] = useState(HEALTHY_METRICS)
 
   const wsRef = useRef(null)
 
@@ -28,22 +24,13 @@ export function useWebSocket() {
     const ws = new WebSocket(WS_URL)
     wsRef.current = ws
 
-    ws.onopen = () => {
-      setIsConnected(true)
-    }
-
-    ws.onclose = () => {
-      setIsConnected(false)
-    }
-
-    ws.onerror = () => {
-      setIsConnected(false)
-    }
+    ws.onopen = () => setIsConnected(true)
+    ws.onclose = () => setIsConnected(false)
+    ws.onerror = () => setIsConnected(false)
 
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
-
         switch (msg.type) {
           case 'log':
             setLogs((prev) => [...prev, msg.log])
@@ -60,6 +47,9 @@ export function useWebSocket() {
           case 'pipeline_error':
             setPipelineError(msg.error)
             break
+          case 'metric_update':
+            setMetrics(msg.data)
+            break
           default:
             break
         }
@@ -68,9 +58,7 @@ export function useWebSocket() {
       }
     }
 
-    return () => {
-      ws.close()
-    }
+    return () => ws.close()
   }, [])
 
   const clearState = useCallback(() => {
@@ -79,6 +67,7 @@ export function useWebSocket() {
     setThreat(null)
     setRemediation(null)
     setPipelineError(null)
+    setMetrics(HEALTHY_METRICS)
   }, [])
 
   return {
@@ -88,6 +77,7 @@ export function useWebSocket() {
     remediation,
     pipelineError,
     isConnected,
+    metrics,
     clearState,
   }
 }

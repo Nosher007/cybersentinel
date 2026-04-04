@@ -23,7 +23,7 @@ function App() {
   const [departmentStatuses, setDepartmentStatuses] = useState(DEFAULT_DEPT_STATUSES)
   const phaseIntervalRef = useRef(null)
 
-  const { logs, status, threat, remediation, pipelineError, isConnected, clearState } = useWebSocket()
+  const { logs, status, threat, remediation, pipelineError, isConnected, metrics, clearState } = useWebSocket()
 
   // When simulation_complete arrives, mark attack as done
   useEffect(() => {
@@ -86,8 +86,8 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CompanyDashboard
             isAttackRunning={isAttackRunning}
-            attackInfo={attackInfo}
             departmentStatuses={departmentStatuses}
+            metrics={metrics}
           />
           <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
             <LogTerminal logs={logs} />

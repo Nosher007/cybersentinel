@@ -1,7 +1,7 @@
 """
-Phase-based metric snapshots for the NovaPay dashboard.
-Each phase_id maps to realistic metric values for that point in the attack.
-The frontend displays these directly — no client-side calculation needed.
+Maps log tags → NovaPay metric snapshots.
+Keys are the actual tags that appear inside [...] in emitted log lines.
+The websocket router uses re.search to find the first [TAG] in each log.
 """
 
 HEALTHY_METRICS = {
@@ -11,130 +11,123 @@ HEALTHY_METRICS = {
     "uptimePct": 99.97,
 }
 
-# Maps phase_id → metric snapshot
-# Values represent the peak/representative state during that phase.
-PHASE_METRICS: dict[str, dict] = {
-    # --- Account Takeover ---
-    "recon": {
+LOG_TAG_METRICS: dict[str, dict] = {
+
+    # ── Account Takeover ──────────────────────────────────────────
+    # logs: [RECON] ..., [BRUTE_FORCE] ..., [2FA_BYPASS] ..., [ACCOUNT_LOCK] ...
+    "RECON": {
         "txPerSec": 44,
         "activeUsers": 1280,
         "apiLatencyMs": 52,
         "uptimePct": 99.97,
     },
-    "brute_force": {
+    "BRUTE_FORCE": {
         "txPerSec": 38,
         "activeUsers": 1190,
         "apiLatencyMs": 340,
         "uptimePct": 99.81,
     },
-    "2fa_bypass": {
+    "2FA_BYPASS": {
         "txPerSec": 35,
         "activeUsers": 1050,
         "apiLatencyMs": 480,
         "uptimePct": 99.60,
     },
-    "account_lock": {
+    "ACCOUNT_LOCK": {
         "txPerSec": 28,
         "activeUsers": 720,
         "apiLatencyMs": 620,
         "uptimePct": 99.10,
     },
 
-    # --- Transaction Fraud ---
-    "login": {
+    # ── Transaction Fraud ─────────────────────────────────────────
+    # logs: [LOGIN] ..., [PROBE] ..., [LARGE_TRANSFER] ..., [API_SCRAPE] ...
+    "LOGIN": {
         "txPerSec": 43,
         "activeUsers": 1290,
         "apiLatencyMs": 41,
         "uptimePct": 99.97,
     },
-    "probe": {
+    "PROBE": {
         "txPerSec": 55,
         "activeUsers": 1295,
         "apiLatencyMs": 68,
         "uptimePct": 99.95,
     },
-    "large_transfer": {
+    "LARGE_TRANSFER": {
         "txPerSec": 62,
         "activeUsers": 1300,
         "apiLatencyMs": 120,
         "uptimePct": 99.90,
     },
-    "api_scrape": {
+    "API_SCRAPE": {
         "txPerSec": 310,
         "activeUsers": 1240,
         "apiLatencyMs": 890,
         "uptimePct": 99.40,
     },
 
-    # --- SQL Injection ---
-    "malformed_queries": {
+    # ── SQL Injection ─────────────────────────────────────────────
+    # logs: [NORMAL] ..., [MALFORMED] ..., [INJECT] ..., [DUMP] ...
+    "NORMAL": HEALTHY_METRICS,
+    "MALFORMED": {
         "txPerSec": 36,
         "activeUsers": 1260,
         "apiLatencyMs": 180,
         "uptimePct": 99.90,
     },
-    "injection": {
+    "INJECT": {
         "txPerSec": 22,
         "activeUsers": 980,
         "apiLatencyMs": 760,
         "uptimePct": 98.80,
     },
-    "table_dump": {
+    "DUMP": {
         "txPerSec": 8,
         "activeUsers": 540,
         "apiLatencyMs": 1840,
         "uptimePct": 97.20,
     },
 
-    # --- Insider Threat ---
-    "offhours_login": {
-        "txPerSec": 6,
-        "activeUsers": 12,
-        "apiLatencyMs": 44,
-        "uptimePct": 99.97,
-    },
-    "mass_access": {
-        "txPerSec": 9,
-        "activeUsers": 14,
-        "apiLatencyMs": 210,
-        "uptimePct": 99.85,
-    },
-    "pii_download": {
-        "txPerSec": 4,
-        "activeUsers": 14,
-        "apiLatencyMs": 390,
-        "uptimePct": 99.70,
-    },
-    "external_transfer": {
-        "txPerSec": 2,
-        "activeUsers": 14,
-        "apiLatencyMs": 520,
-        "uptimePct": 99.50,
-    },
-
-    # --- DDoS Attack ---
-    "normal_traffic": HEALTHY_METRICS,
-    "traffic_spike": {
-        "txPerSec": 2400,
-        "activeUsers": 890,
-        "apiLatencyMs": 820,
-        "uptimePct": 99.50,
-    },
-    "gateway_degradation": {
+    # ── DDoS Attack ───────────────────────────────────────────────
+    # logs contain embedded service tags: [NGINX], [API-GW], [BOTNET]
+    "NGINX": HEALTHY_METRICS,
+    "API-GW": {
         "txPerSec": 5800,
         "activeUsers": 420,
         "apiLatencyMs": 3200,
         "uptimePct": 96.10,
     },
-    "botnet_flood": {
+    "BOTNET": {
         "txPerSec": 9100,
         "activeUsers": 95,
         "apiLatencyMs": 6400,
         "uptimePct": 91.40,
     },
+
+    # ── Insider Threat ────────────────────────────────────────────
+    # logs contain embedded service tags: [AUTH], [DB], [COMPLIANCE]
+    "AUTH": {
+        "txPerSec": 6,
+        "activeUsers": 12,
+        "apiLatencyMs": 44,
+        "uptimePct": 99.97,
+    },
+    "DB": {
+        "txPerSec": 4,
+        "activeUsers": 14,
+        "apiLatencyMs": 390,
+        "uptimePct": 99.70,
+    },
+    "COMPLIANCE": {
+        "txPerSec": 2,
+        "activeUsers": 14,
+        "apiLatencyMs": 520,
+        "uptimePct": 99.50,
+    },
 }
 
 
-def get_metrics_for_phase(phase_id: str) -> dict:
-    """Return metric snapshot for a given phase ID, or healthy metrics if unknown."""
-    return PHASE_METRICS.get(phase_id, HEALTHY_METRICS)
+def get_metrics_for_tag(tag: str) -> dict | None:
+    """Return metric snapshot for a log tag, or None if not a known attack tag."""
+    return LOG_TAG_METRICS.get(tag)

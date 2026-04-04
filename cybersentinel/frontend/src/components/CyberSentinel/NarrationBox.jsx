@@ -25,7 +25,8 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
     if (!logs || logs.length === 0) return
     const latest = logs[logs.length - 1]
     const text = getNarrationFromLog(latest)
-    if (text && text !== currentText) {
+    // null means "no narration for this tag" — don't overwrite a good message
+    if (text !== null && text !== undefined && text !== currentText) {
       setVisible(false)
       setTimeout(() => {
         setCurrentText(text)

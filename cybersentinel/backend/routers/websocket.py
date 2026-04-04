@@ -41,15 +41,15 @@ manager = ConnectionManager()
 try:
     from backend.agents.orchestrator import build_pipeline
     from backend.routers.threats import threat_store
-    from backend.simulation.phase_metrics import get_metrics_for_phase, HEALTHY_METRICS
+    from backend.simulation.phase_metrics import get_metrics_for_tag, HEALTHY_METRICS
 except ModuleNotFoundError:
     from agents.orchestrator import build_pipeline
     from routers.threats import threat_store
-    from simulation.phase_metrics import get_metrics_for_phase, HEALTHY_METRICS
+    from simulation.phase_metrics import get_metrics_for_tag, HEALTHY_METRICS
 
 
 import re as _re
-_PHASE_PREFIX_RE = _re.compile(r'^\[([A-Z0-9_]+)\]')
+_LOG_TAG_RE = _re.compile(r'\[([A-Z0-9_-]+)\]')
 
 
 def _run_agent_pipeline(collected_logs: list[tuple[str, str]]) -> dict | None:
@@ -113,12 +113,13 @@ async def broadcast_from_engine():
             # Broadcast raw log to all WS clients
             await manager.broadcast({"type": "log", "log": log})
 
-            # Detect phase from log prefix and broadcast metric update
-            match = _PHASE_PREFIX_RE.match(log)
+            # Detect first [TAG] anywhere in the log and broadcast metric update
+            match = _LOG_TAG_RE.search(log)
             if match:
-                phase_id = match.group(1).lower()
-                metrics = get_metrics_for_phase(phase_id)
-                await manager.broadcast({"type": "metric_update", "data": metrics})
+                tag = match.group(1)
+                metrics = get_metrics_for_tag(tag)
+                if metrics:
+                    await manager.broadcast({"type": "metric_update", "data": metrics})
 
             # Collect for agent pipeline (store as (raw_log, log_type) tuple)
             # log is a string — default to AUTH type for collector; agents parse it

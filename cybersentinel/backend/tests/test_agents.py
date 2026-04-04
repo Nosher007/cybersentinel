@@ -567,3 +567,121 @@ class TestRemediationAgentRemediate:
         agent = RemediationAgent()
         result = agent.remediate(_make_scored_threat())
         assert all(isinstance(s, RemediationStep) for s in result.immediate_steps)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TICKET-019 — LangGraph Orchestrator Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from backend.agents.orchestrator import build_pipeline, AgentState
+
+
+class TestOrchestratorBuild:
+
+    def test_build_pipeline_returns_compiled_graph(self):
+        graph = build_pipeline()
+        assert graph is not None
+
+    def test_agent_state_has_required_keys(self):
+        state = AgentState(
+            raw_logs=[],
+            parsed_logs=None,
+            threat_event=None,
+            scored_threat=None,
+            remediation_plan=None,
+            error=None,
+        )
+        assert "raw_logs" in state
+        assert "parsed_logs" in state
+        assert "threat_event" in state
+        assert "scored_threat" in state
+        assert "remediation_plan" in state
+
+    def test_build_pipeline_is_callable(self):
+        graph = build_pipeline()
+        assert callable(graph.invoke)
+
+
+class TestOrchestratorRun:
+
+    @patch("backend.agents.orchestrator.LogParserAgent")
+    @patch("backend.agents.orchestrator.ThreatDetectorAgent")
+    @patch("backend.agents.orchestrator.SeverityClassifierAgent")
+    @patch("backend.agents.orchestrator.RemediationAgent")
+    def test_pipeline_runs_end_to_end(
+        self, mock_rem, mock_sev, mock_threat, mock_parser
+    ):
+        mock_parser.return_value.parse_batch.return_value = _make_brute_force_logs()
+        mock_threat.return_value.detect.return_value = _make_threat_event()
+        mock_sev.return_value.classify.return_value = _make_scored_threat()
+        mock_rem.return_value.remediate.return_value = _make_remediation_plan()
+
+        graph = build_pipeline()
+        raw = [("log line 1", "auth"), ("log line 2", "auth")]
+        result = graph.invoke({"raw_logs": raw})
+
+        assert result["remediation_plan"] is not None
+        assert isinstance(result["remediation_plan"], RemediationPlan)
+
+    @patch("backend.agents.orchestrator.LogParserAgent")
+    @patch("backend.agents.orchestrator.ThreatDetectorAgent")
+    @patch("backend.agents.orchestrator.SeverityClassifierAgent")
+    @patch("backend.agents.orchestrator.RemediationAgent")
+    def test_pipeline_all_agents_called(
+        self, mock_rem, mock_sev, mock_threat, mock_parser
+    ):
+        mock_parser.return_value.parse_batch.return_value = _make_brute_force_logs()
+        mock_threat.return_value.detect.return_value = _make_threat_event()
+        mock_sev.return_value.classify.return_value = _make_scored_threat()
+        mock_rem.return_value.remediate.return_value = _make_remediation_plan()
+
+        graph = build_pipeline()
+        graph.invoke({"raw_logs": [("log line", "auth")]})
+
+        mock_parser.return_value.parse_batch.assert_called_once()
+        mock_threat.return_value.detect.assert_called_once()
+        mock_sev.return_value.classify.assert_called_once()
+        mock_rem.return_value.remediate.assert_called_once()
+
+    @patch("backend.agents.orchestrator.LogParserAgent")
+    @patch("backend.agents.orchestrator.ThreatDetectorAgent")
+    @patch("backend.agents.orchestrator.SeverityClassifierAgent")
+    @patch("backend.agents.orchestrator.RemediationAgent")
+    def test_pipeline_produces_scored_threat(
+        self, mock_rem, mock_sev, mock_threat, mock_parser
+    ):
+        mock_parser.return_value.parse_batch.return_value = _make_brute_force_logs()
+        mock_threat.return_value.detect.return_value = _make_threat_event()
+        mock_sev.return_value.classify.return_value = _make_scored_threat()
+        mock_rem.return_value.remediate.return_value = _make_remediation_plan()
+
+        graph = build_pipeline()
+        result = graph.invoke({"raw_logs": [("log line", "auth")]})
+
+        assert isinstance(result["scored_threat"], ScoredThreat)
+
+    @patch("backend.agents.orchestrator.LogParserAgent")
+    @patch("backend.agents.orchestrator.ThreatDetectorAgent")
+    @patch("backend.agents.orchestrator.SeverityClassifierAgent")
+    @patch("backend.agents.orchestrator.RemediationAgent")
+    def test_pipeline_parser_failure_sets_error(
+        self, mock_rem, mock_sev, mock_threat, mock_parser
+    ):
+        mock_parser.return_value.parse_batch.side_effect = Exception("parse failed")
+
+        graph = build_pipeline()
+        result = graph.invoke({"raw_logs": [("bad log", "auth")]})
+
+        assert result.get("error") is not None
+
+    @patch("backend.agents.orchestrator.LogParserAgent")
+    @patch("backend.agents.orchestrator.ThreatDetectorAgent")
+    @patch("backend.agents.orchestrator.SeverityClassifierAgent")
+    @patch("backend.agents.orchestrator.RemediationAgent")
+    def test_pipeline_empty_logs_sets_error(
+        self, mock_rem, mock_sev, mock_threat, mock_parser
+    ):
+        graph = build_pipeline()
+        result = graph.invoke({"raw_logs": []})
+
+        assert result.get("error") is not None

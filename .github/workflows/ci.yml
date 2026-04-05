@@ -73,12 +73,18 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cybersentinel/backend:${{ github.sha }}"
-          # Write env vars file with secret injected
+
+          if [ -z "${{ secrets.GOOGLE_API_KEY }}" ]; then
+            echo "Missing required secret: GOOGLE_API_KEY"
+            exit 1
+          fi
+
           cat cybersentinel/cloudrun-env.yaml > /tmp/env.yaml
-          echo "GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}" >> /tmp/env.yaml
+          printf 'GOOGLE_API_KEY: "%s"\n' "${{ secrets.GOOGLE_API_KEY }}" >> /tmp/env.yaml
+
           gcloud run deploy cybersentinel-backend \
             --image "$IMAGE" \
-            --region ${{ vars.GCP_REGION }} \
+            --region "${{ vars.GCP_REGION }}" \
             --platform managed \
             --allow-unauthenticated \
             --env-vars-file /tmp/env.yaml \

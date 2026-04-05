@@ -41,7 +41,7 @@ export function CompanyDashboard({ departmentStatuses = {}, isAttackRunning = fa
   const isUnderAttack = isAttackRunning
 
   return (
-    <div className={`bg-[#0d1324] rounded-xl p-5 border-2 transition-all duration-500 ${
+    <div className={`bg-[#0d1324] rounded-xl p-4 sm:p-5 border-2 transition-all duration-500 ${
       isUnderAttack ? 'border-orange-800 shadow-[0_0_20px_rgba(194,65,12,0.2)]' : 'border-[#1e2d4a]'
     }`}>
       {/* Header */}
@@ -54,7 +54,7 @@ export function CompanyDashboard({ departmentStatuses = {}, isAttackRunning = fa
       </div>
 
       {/* Live metrics */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mb-5">
         <MetricTile
           label="Transactions / sec"
           value={txPerSec.toLocaleString()}
@@ -103,7 +103,7 @@ function MetricTile({ label, value, unit = '', color }) {
   return (
     <div className="bg-[#111827] rounded-lg p-3 border border-[#1e2d4a]">
       <div className="text-slate-500 text-xs mb-1">{label}</div>
-      <div className={`text-xl font-mono font-bold transition-colors duration-500 ${colors[color]}`}>
+      <div className={`text-lg sm:text-xl font-mono font-bold transition-colors duration-500 ${colors[color]}`}>
         {value}<span className="text-sm font-normal ml-1 text-slate-400">{unit}</span>
       </div>
     </div>

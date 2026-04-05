@@ -73,7 +73,7 @@ export function PromptInput({ onAttackStart, onAttackStop, isAttackRunning }) {
         </div>
 
         {/* Input row */}
-        <form onSubmit={handleSubmit} className="flex gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={prompt}
@@ -86,7 +86,7 @@ export function PromptInput({ onAttackStart, onAttackStop, isAttackRunning }) {
             <button
               type="button"
               onClick={handleStop}
-              className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-bold transition-all"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-bold transition-all"
             >
               Stop Attack
             </button>
@@ -94,7 +94,7 @@ export function PromptInput({ onAttackStart, onAttackStop, isAttackRunning }) {
             <button
               type="submit"
               disabled={disabled || !prompt.trim()}
-              className="px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-all"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-all"
             >
               {isSubmitting ? 'Launching...' : 'Launch Attack'}
             </button>

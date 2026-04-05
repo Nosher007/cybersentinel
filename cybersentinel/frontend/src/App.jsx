@@ -77,18 +77,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-slate-200 p-6">
+    <div className="min-h-screen bg-[#0a0e1a] text-slate-200 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-wide">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wide">
               Cyber<span className="text-cyan-400">Sentinel</span>
             </h1>
-            <p className="text-slate-500 text-xs mt-0.5">AI-powered threat detection · NovaPay environment</p>
+            <p className="text-slate-500 text-xs mt-0.5 hidden sm:block">AI-powered threat detection · NovaPay environment</p>
           </div>
-          <div className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border ${
+          <div className={`flex items-center gap-2 text-xs sm:text-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border ${
             isConnected
               ? 'text-emerald-400 border-emerald-900/60 bg-emerald-950/30'
               : 'text-slate-500 border-slate-800 bg-slate-900/30'
@@ -108,8 +108,8 @@ function App() {
         <AttackStatusBanner attackInfo={attackInfo} isAttackRunning={isAttackRunning} />
 
         {/* Main layout — asymmetric: NovaPay sidebar (1/3) + CyberSentinel panel (2/3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div className="lg:col-span-1 order-2 lg:order-1">
             <CompanyDashboard
               isAttackRunning={isAttackRunning}
               departmentStatuses={departmentStatuses}
@@ -117,7 +117,7 @@ function App() {
             />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-1 lg:order-2">
             <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
               <NarrationBox logs={logs} threat={threat} isAttackRunning={isAttackRunning} />
               <LogTerminal logs={logs} />
@@ -133,7 +133,7 @@ function App() {
         </div>
 
         {/* Attack console */}
-        <div className="mt-5">
+        <div className="mt-4 sm:mt-5">
           <PromptInput
             onAttackStart={handleAttackStart}
             onAttackStop={handleAttackStop}

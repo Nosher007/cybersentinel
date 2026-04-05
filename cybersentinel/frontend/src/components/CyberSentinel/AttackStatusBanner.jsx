@@ -35,7 +35,7 @@ export function AttackStatusBanner({ attackInfo, isAttackRunning }) {
   }[intensity] ?? 'text-slate-400'
 
   return (
-    <div className="mb-5 rounded-lg bg-red-950/40 border border-red-800/60 px-5 py-3 flex items-center gap-6 flex-wrap">
+    <div className="mb-4 sm:mb-5 rounded-lg bg-red-950/40 border border-red-800/60 px-3 sm:px-5 py-3 flex items-center gap-3 sm:gap-6 flex-wrap">
       <div className="flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         <span className="text-red-400 text-xs font-bold tracking-widest uppercase">Attack In Progress</span>

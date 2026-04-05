@@ -3,7 +3,7 @@ export function AlertWindow({ threat, isAttackRunning, children }) {
 
   return (
     <div
-      className={`bg-[#0d1324] rounded-xl p-5 border-2 transition-all duration-500 flex flex-col max-h-[720px] ${
+      className={`bg-[#0d1324] rounded-xl p-4 sm:p-5 border-2 transition-all duration-500 flex flex-col max-h-[55vh] sm:max-h-[680px] lg:max-h-[720px] ${
         isAlert
           ? 'border-red-500 shadow-[0_0_28px_rgba(239,68,68,0.2)]'
           : 'border-emerald-800'

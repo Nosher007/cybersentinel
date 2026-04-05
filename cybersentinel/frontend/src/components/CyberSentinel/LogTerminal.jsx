@@ -30,7 +30,7 @@ export function LogTerminal({ logs }) {
       <div className="text-xs text-slate-500 font-mono uppercase tracking-widest mb-2">Live Logs</div>
       <div
         ref={containerRef}
-        className="bg-[#070b14] border border-[#1e2d4a] rounded-lg p-3 h-48 overflow-y-auto font-mono text-xs space-y-0.5"
+        className="bg-[#070b14] border border-[#1e2d4a] rounded-lg p-3 h-36 sm:h-48 overflow-y-auto font-mono text-xs space-y-0.5"
       >
         {logs.map((line, i) => (
           <div key={i} className={`leading-relaxed whitespace-pre-wrap break-all ${colorClass(line)}`}>

@@ -24,6 +24,8 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(true)
   const [isAttackRunning, setIsAttackRunning] = useState(false)
   const [attackInfo, setAttackInfo] = useState(null)
+  const attackStartTimeRef = useRef(null)
+  const [threatDetectedAt, setThreatDetectedAt] = useState(null)
   const [departmentStatuses, setDepartmentStatuses] = useState(DEFAULT_DEPT_STATUSES)
   const phaseIntervalRef = useRef(null)
 
@@ -53,10 +55,16 @@ function App() {
     return () => clearInterval(phaseIntervalRef.current)
   }, [attackInfo])
 
+  useEffect(() => {
+    if (threat) setThreatDetectedAt(Date.now())
+  }, [threat])
+
   const handleAttackStart = (data) => {
     clearState()
     setDepartmentStatuses(DEFAULT_DEPT_STATUSES)
     clearInterval(phaseIntervalRef.current)
+    attackStartTimeRef.current = Date.now()
+    setThreatDetectedAt(null)
     setAttackInfo(data)
     setIsAttackRunning(true)
   }
@@ -64,6 +72,7 @@ function App() {
   const handleAttackStop = () => {
     clearInterval(phaseIntervalRef.current)
     setIsAttackRunning(false)
+    setThreatDetectedAt(null)
     setDepartmentStatuses(DEFAULT_DEPT_STATUSES)
   }
 
@@ -89,6 +98,12 @@ function App() {
           </div>
         </div>
 
+        {/* Simulation disclaimer */}
+        <div className="mb-3 px-3 py-1.5 rounded-md bg-amber-950/30 border border-amber-800/40 text-amber-500/80 text-xs flex items-center gap-2">
+          <span className="shrink-0">⚠</span>
+          <span>Simulation only — AI threat detection demonstrates early-stage pattern recognition and may not be 100% accurate. This is an educational cybersecurity demo.</span>
+        </div>
+
         {/* Attack status banner */}
         <AttackStatusBanner attackInfo={attackInfo} isAttackRunning={isAttackRunning} />
 
@@ -106,7 +121,7 @@ function App() {
             <AlertWindow threat={threat} isAttackRunning={isAttackRunning}>
               <NarrationBox logs={logs} threat={threat} isAttackRunning={isAttackRunning} />
               <LogTerminal logs={logs} />
-              {threat && <ThreatCard threat={threat} />}
+              {threat && <ThreatCard threat={threat} attackStartTime={attackStartTimeRef.current} threatDetectedAt={threatDetectedAt} />}
               {remediation && <RemediationPanel remediation={remediation} />}
               {pipelineError && (
                 <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-400 text-xs font-mono">

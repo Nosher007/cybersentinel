@@ -14,7 +14,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-limiter = Limiter(key_func=get_remote_address)
+ENVIRONMENT = os.getenv("ENVIRONMENT", "").lower()
+limiter = Limiter(key_func=get_remote_address, enabled=(ENVIRONMENT != "test"))
 
 
 @asynccontextmanager
@@ -42,7 +43,8 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+if ENVIRONMENT != "test":
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

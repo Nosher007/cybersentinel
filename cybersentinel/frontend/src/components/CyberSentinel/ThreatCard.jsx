@@ -7,7 +7,7 @@ const SEVERITY_CONFIG = {
   LOW:      { bg: 'bg-yellow-900/20', border: 'border-yellow-700', text: 'text-yellow-400', badge: 'bg-yellow-700' },
 }
 
-export function ThreatCard({ threat }) {
+export function ThreatCard({ threat, attackStartTime, threatDetectedAt }) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -80,6 +80,24 @@ export function ThreatCard({ threat }) {
               {s}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Detection timeline */}
+      {attackStartTime && threatDetectedAt && (
+        <div className="mt-3 pt-3 border-t border-white/5">
+          <div className="text-slate-500 text-xs mb-2">Detection Timeline</div>
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <span className="text-slate-500">Attack start</span>
+            <div className="flex-1 flex items-center gap-0.5">
+              <div className="h-px flex-1 bg-slate-700" />
+              <span className={`${cfg.text} shrink-0`}>
+                {((threatDetectedAt - attackStartTime) / 1000).toFixed(1)}s
+              </span>
+              <div className="h-px flex-1 bg-slate-700" />
+            </div>
+            <span className="text-emerald-400">AI detected</span>
+          </div>
         </div>
       )}
     </div>

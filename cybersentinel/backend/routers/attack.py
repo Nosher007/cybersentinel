@@ -4,6 +4,7 @@ POST /attack: interprets natural language prompt → starts simulation → trigg
 POST /stop:   stops the running scenario
 """
 import asyncio
+import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from slowapi import Limiter
@@ -16,7 +17,8 @@ except ModuleNotFoundError:
     from agents.prompt_interpreter import AttackPromptInterpreter
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+_is_test = os.getenv("ENVIRONMENT", "").lower() == "test"
+limiter = Limiter(key_func=get_remote_address, enabled=not _is_test)
 
 engine = SimulationEngine()
 
@@ -50,8 +52,8 @@ async def start_attack(request: Request, req: AttackRequest):
         interpreted = await asyncio.get_event_loop().run_in_executor(
             None, interpreter.interpret, req.prompt
         )
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Prompt interpretation failed: {exc}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Attack interpretation failed. Please try again.")
 
     scenario_id = interpreted.scenario_id
     await engine.start(scenario_id)

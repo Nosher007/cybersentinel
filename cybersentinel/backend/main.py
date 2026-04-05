@@ -35,11 +35,14 @@ async def lifespan(app: FastAPI):
         pass
 
 
+_hide_docs = ENVIRONMENT == "production"
 app = FastAPI(
     title="CyberSentinel",
     description="AI-powered cybersecurity simulation and threat analysis engine",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None if _hide_docs else "/docs",
+    openapi_url=None if _hide_docs else "/openapi.json",
 )
 
 app.state.limiter = limiter

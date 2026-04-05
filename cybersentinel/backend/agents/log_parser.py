@@ -21,10 +21,13 @@ PARSE_PROMPT = ChatPromptTemplate.from_messages([
 class LogParserAgent:
 
     def __init__(self, model: str = "gemini-2.5-flash"):
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is not set")
         self._llm = ChatGoogleGenerativeAI(
             model=model,
             temperature=0,
-            google_api_key=os.getenv("GOOGLE_API_KEY", "placeholder"),
+            google_api_key=api_key,
         )
 
     def parse(self, raw_log: str, log_type: LogType) -> ParsedLog:

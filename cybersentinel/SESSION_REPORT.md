@@ -321,3 +321,42 @@
 
 ### Project Complete
 All 7 phases done. Full game loop works in production.
+
+---
+
+## Session — 2026-04-05 (Post-deployment hardening)
+
+### Work Completed
+- Welcome modal — fade-in popup on page load summarising the project (dismiss on button or backdrop click)
+- Simulation disclaimer banner — amber strip below header clarifying this is an educational AI demo
+- Detection timeline — ThreatCard now shows elapsed seconds from attack start → AI detected
+- Rate limiting bug fix — `attack.py` had its own always-on `Limiter` instance; now reads `ENVIRONMENT` to disable in test (was causing 429s mid-test suite in CI)
+- Error leakage fix — raw exception detail no longer returned to client on 500; generic message returned, exception logged server-side
+- Swagger/OpenAPI disabled in production — `/docs` and `/openapi.json` hidden when `ENVIRONMENT=production`
+- API key validation — all 5 agents now raise `ValueError` at init if `GOOGLE_API_KEY` is missing (replaces silent `"placeholder"` default)
+
+### Tests Passing
+- 332 / 332 passing
+- CI: all 3 jobs green (Backend Tests ✓, Deploy Backend ✓, Deploy Frontend ✓)
+- Run ID: 24006502154
+
+### Current Phase Status
+- Phase 1 — Foundation: COMPLETE
+- Phase 2 — Simulation Engine: COMPLETE
+- Phase 3 — LangGraph Agents: COMPLETE
+- Phase 4 — Airflow CVE Pipeline: COMPLETE
+- Phase 5 — Full Backend Integration: COMPLETE
+- Phase 6 — Frontend: COMPLETE
+- Phase 7 — Deployment: COMPLETE
+
+### Live URLs
+- Frontend: https://cybersentinel-prod.web.app
+- Backend: https://cybersentinel-backend-5803836062.us-central1.run.app
+- Health check: https://cybersentinel-backend-5803836062.us-central1.run.app/health
+
+### Key Things to Know for Next Session
+- All 7 phases complete — project is in production
+- CI auto-deploys on every push to main (tests must pass first)
+- `ENVIRONMENT=test` in CI disables rate limiting — both `main.py` and `attack.py` read this
+- Swagger docs only visible locally/dev; hidden in production
+- Node.js 20 deprecation warnings in CI are non-breaking (deadline June 2026 — update actions versions then)

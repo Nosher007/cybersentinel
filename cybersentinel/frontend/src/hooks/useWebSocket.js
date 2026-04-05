@@ -40,7 +40,10 @@ export function useWebSocket() {
         const msg = JSON.parse(event.data)
         switch (msg.type) {
           case 'log':
-            setLogs((prev) => [...prev, msg.log])
+            setLogs((prev) => {
+              const next = [...prev, msg.log]
+              return next.length > 200 ? next.slice(-200) : next
+            })
             break
           case 'status':
             setStatus(msg.message)

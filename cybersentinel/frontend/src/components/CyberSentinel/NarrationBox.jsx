@@ -35,6 +35,13 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
     }
   }, [logs])
 
+  // Show "Monitoring..." immediately when attack starts
+  useEffect(() => {
+    if (isAttackRunning && !threat) {
+      setVisible(true)
+    }
+  }, [isAttackRunning])
+
   // Reset when attack stops
   useEffect(() => {
     if (!isAttackRunning && !threat) {

@@ -51,6 +51,32 @@ except ModuleNotFoundError:
 import re as _re
 _LOG_TAG_RE = _re.compile(r'\[([A-Z0-9_-]+)\]')
 
+# Map log-line service tags to valid LogType enum values
+_SERVICE_TAG_TO_LOG_TYPE = {
+    "AUTH": "auth",
+    "NGINX": "nginx",
+    "API-GW": "api",
+    "FIREWALL": "firewall",
+    "DB": "database",
+    "TXN-ENGINE": "api",
+    "COMPLIANCE": "database",
+    "BOTNET": "firewall",
+}
+
+
+def _detect_log_type(log_line: str) -> str:
+    """Detect LogType from service tags embedded in the log string.
+
+    Scenarios wrap base logs with phase tags (e.g. [BRUTE_FORCE] ... [AUTH]),
+    so we scan all tags and return the first match against a known service tag.
+    Falls back to 'auth' if nothing matches.
+    """
+    for tag in _LOG_TAG_RE.findall(log_line):
+        log_type = _SERVICE_TAG_TO_LOG_TYPE.get(tag)
+        if log_type:
+            return log_type
+    return "auth"
+
 
 def _run_agent_pipeline(collected_logs: list[tuple[str, str]]) -> dict | None:
     """Synchronous — runs in thread pool via run_in_executor."""
@@ -122,8 +148,7 @@ async def broadcast_from_engine():
                     await manager.broadcast({"type": "metric_update", "data": metrics})
 
             # Collect for agent pipeline (store as (raw_log, log_type) tuple)
-            # log is a string — default to AUTH type for collector; agents parse it
-            collected_logs.append((log, "auth"))
+            collected_logs.append((log, _detect_log_type(log)))
 
             # When simulation ends, run the pipeline
             if not engine.is_running and engine.queue.empty():

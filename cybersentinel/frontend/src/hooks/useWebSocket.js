@@ -27,7 +27,11 @@ export function useWebSocket() {
     const ws = new WebSocket(WS_URL)
     wsRef.current = ws
 
-    ws.onopen = () => setIsConnected(true)
+    ws.onopen = () => {
+      setIsConnected(true)
+      // Clear any stale simulation left over from a previous page session
+      fetch(`${BACKEND_URL}/stop`, { method: 'POST' }).catch(() => {})
+    }
     ws.onclose = () => setIsConnected(false)
     ws.onerror = () => setIsConnected(false)
 

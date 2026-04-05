@@ -9,6 +9,7 @@ import { NarrationBox } from './components/CyberSentinel/NarrationBox'
 import { ThreatCard } from './components/CyberSentinel/ThreatCard'
 import { RemediationPanel } from './components/CyberSentinel/RemediationPanel'
 import { useWebSocket } from './hooks/useWebSocket'
+import { WelcomeModal } from './components/CyberSentinel/WelcomeModal'
 import { SCENARIO_DEPARTMENT_PHASES, PHASE_DELAY_MS } from './utils/threatColors'
 
 const DEFAULT_DEPT_STATUSES = {
@@ -20,6 +21,7 @@ const DEFAULT_DEPT_STATUSES = {
 }
 
 function App() {
+  const [showWelcome, setShowWelcome] = useState(true)
   const [isAttackRunning, setIsAttackRunning] = useState(false)
   const [attackInfo, setAttackInfo] = useState(null)
   const [departmentStatuses, setDepartmentStatuses] = useState(DEFAULT_DEPT_STATUSES)
@@ -125,6 +127,8 @@ function App() {
         </div>
 
       </div>
+
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
     </div>
   )
 }

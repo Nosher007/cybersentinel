@@ -21,6 +21,7 @@ faker>=25.2.0
 # Utilities
 python-dotenv>=1.0.1
 httpx>=0.27.0
+slowapi>=0.1.9
 
 # Testing
 pytest>=8.2.0

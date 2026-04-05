@@ -4,8 +4,10 @@ POST /attack: interprets natural language prompt → starts simulation → trigg
 POST /stop:   stops the running scenario
 """
 import asyncio
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from simulation.engine import SimulationEngine, SCENARIO_REGISTRY
 
 try:
@@ -14,8 +16,11 @@ except ModuleNotFoundError:
     from agents.prompt_interpreter import AttackPromptInterpreter
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 engine = SimulationEngine()
+
+MAX_PROMPT_LENGTH = 300
 
 
 class AttackRequest(BaseModel):
@@ -23,9 +28,16 @@ class AttackRequest(BaseModel):
 
 
 @router.post("/attack")
-async def start_attack(req: AttackRequest):
+@limiter.limit("5/minute")
+async def start_attack(request: Request, req: AttackRequest):
     if not req.prompt or not req.prompt.strip():
         raise HTTPException(status_code=400, detail="prompt cannot be empty")
+
+    if len(req.prompt) > MAX_PROMPT_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Prompt too long. Maximum {MAX_PROMPT_LENGTH} characters."
+        )
 
     if engine.is_running:
         raise HTTPException(

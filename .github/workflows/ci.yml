@@ -35,7 +35,9 @@ jobs:
 
       - name: Run tests
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # Real key used in production deploys; fallback allows TestInit tests
+          # to instantiate agents without API calls (those tests use mocks)
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY || 'test_api_key_ci' }}
           CHROMA_PATH: ./chroma-data
           ENVIRONMENT: test
         run: pytest backend/tests/ simulation/tests/ -v --tb=short

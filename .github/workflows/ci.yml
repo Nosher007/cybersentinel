@@ -73,13 +73,15 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cybersentinel/backend:${{ github.sha }}"
+          # Write env vars file with secret injected
+          cat cybersentinel/cloudrun-env.yaml > /tmp/env.yaml
+          echo "GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}" >> /tmp/env.yaml
           gcloud run deploy cybersentinel-backend \
             --image "$IMAGE" \
             --region ${{ vars.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},ENVIRONMENT=production,CHROMA_PATH=/app/chroma-data,CHROMA_COLLECTION_NAME=cybersentinel_kb" \
-            --set-env-vars "^@^ALLOWED_ORIGINS=https://cybersentinel-prod.web.app,https://cybersentinel-prod.firebaseapp.com,http://localhost:3000" \
+            --env-vars-file /tmp/env.yaml \
             --port 8000
 
   # ── Job 3: Deploy frontend to Firebase Hosting (push to main only) ──────────

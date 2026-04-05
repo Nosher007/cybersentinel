@@ -1,0 +1,4 @@
+ENVIRONMENT: production
+CHROMA_PATH: /app/chroma-data
+CHROMA_COLLECTION_NAME: cybersentinel_kb
+ALLOWED_ORIGINS: "https://cybersentinel-prod.web.app,https://cybersentinel-prod.firebaseapp.com,http://localhost:3000"

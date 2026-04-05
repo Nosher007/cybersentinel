@@ -78,11 +78,8 @@ jobs:
             --region ${{ vars.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" \
-            --set-env-vars "ENVIRONMENT=production" \
-            --set-env-vars "CHROMA_PATH=/app/chroma-data" \
-            --set-env-vars "CHROMA_COLLECTION_NAME=cybersentinel_kb" \
-            --set-env-vars "ALLOWED_ORIGINS=https://cybersentinel-prod.web.app,https://cybersentinel-prod.firebaseapp.com,http://localhost:3000" \
+            --set-env-vars "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},ENVIRONMENT=production,CHROMA_PATH=/app/chroma-data,CHROMA_COLLECTION_NAME=cybersentinel_kb" \
+            --set-env-vars "^@^ALLOWED_ORIGINS=https://cybersentinel-prod.web.app,https://cybersentinel-prod.firebaseapp.com,http://localhost:3000" \
             --port 8000
 
   # ── Job 3: Deploy frontend to Firebase Hosting (push to main only) ──────────

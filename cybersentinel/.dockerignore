@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Environment — never bake API keys into the image
+.env
+.env.*
+
+# Local ChromaDB — image builds its own via seed stage
+chroma-data/
+
+# Frontend (separate deployment)
+frontend/
+
+# Airflow (separate service)
+airflow/
+
+# Dev/test artifacts
+smoke_test_phase3.py
+SESSION_REPORT.md

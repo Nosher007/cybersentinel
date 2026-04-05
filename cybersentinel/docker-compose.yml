@@ -1,70 +1,67 @@
 version: "3.9"
 
+# ── Production services ───────────────────────────────────────────────────────
+# ChromaDB is baked into the backend image at build time (Option A).
+# No separate ChromaDB container needed.
+#
+# Airflow runs as a separate optional service for the nightly CVE pipeline.
+# It is NOT required for the core CyberSentinel game to run.
+
 services:
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      - CHROMA_PATH=/app/chroma-data
+      - CHROMA_COLLECTION_NAME=cybersentinel_kb
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      # API keys injected at runtime — never hardcoded here
+      # Set GOOGLE_API_KEY via: docker compose run -e GOOGLE_API_KEY=... backend
+      # Or use a .env file locally (gitignored)
     env_file:
       - .env
-    depends_on:
-      - chromadb
-    volumes:
-      - ./backend:/app
-    networks:
-      - cybersentinel-net
+    restart: unless-stopped
 
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma-data:/chroma/chroma
-    networks:
-      - cybersentinel-net
-
-  airflow-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    volumes:
-      - airflow-db-data:/var/lib/postgresql/data
-    networks:
-      - cybersentinel-net
-
-  airflow:
-    image: apache/airflow:3.1.8
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__LOAD_EXAMPLES=false
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
-      - AIRFLOW_UID=${AIRFLOW_UID:-50000}
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/tasks:/opt/airflow/tasks
-      - airflow-logs:/opt/airflow/logs
-    env_file:
-      - .env
-    depends_on:
-      - airflow-db
-    command: >
-      bash -c "airflow db migrate &&
-               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@cybersentinel.local &&
-               airflow webserver & airflow scheduler"
-    networks:
-      - cybersentinel-net
-
-volumes:
-  chroma-data:
-  airflow-db-data:
-  airflow-logs:
-
-networks:
-  cybersentinel-net:
-    driver: bridge
+# ── Optional: Airflow CVE pipeline (local development only) ──────────────────
+# Uncomment to run the nightly CVE updater locally.
+# Not deployed to production — discuss in interviews as a design decision.
+#
+#  airflow-db:
+#    image: postgres:15
+#    environment:
+#      POSTGRES_USER: airflow
+#      POSTGRES_PASSWORD: airflow
+#      POSTGRES_DB: airflow
+#    volumes:
+#      - airflow-db-data:/var/lib/postgresql/data
+#
+#  airflow:
+#    image: apache/airflow:3.1.8
+#    environment:
+#      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+#      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+#      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+#    ports:
+#      - "8080:8080"
+#    volumes:
+#      - ./airflow/dags:/opt/airflow/dags
+#      - ./airflow/tasks:/opt/airflow/tasks
+#      - airflow-logs:/opt/airflow/logs
+#    env_file:
+#      - .env
+#    depends_on:
+#      - airflow-db
+#    command: >
+#      bash -c "airflow db migrate &&
+#               airflow users create --username admin --password admin
+#                 --firstname Admin --lastname User --role Admin
+#                 --email admin@cybersentinel.local &&
+#               airflow webserver & airflow scheduler"
+#
+#volumes:
+#  airflow-db-data:
+#  airflow-logs:

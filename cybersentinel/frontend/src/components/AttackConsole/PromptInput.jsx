@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? ''
+
 const EXAMPLE_PROMPTS = [
   'Try to brute force the login system',
   'Flood the payment API with traffic',
@@ -21,7 +23,7 @@ export function PromptInput({ onAttackStart, onAttackStop, isAttackRunning }) {
     setError(null)
 
     try {
-      const res = await fetch('/attack', {
+      const res = await fetch(`${BACKEND_URL}/attack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
@@ -45,7 +47,7 @@ export function PromptInput({ onAttackStart, onAttackStop, isAttackRunning }) {
 
   const handleStop = async () => {
     try {
-      await fetch('/stop', { method: 'POST' })
+      await fetch(`${BACKEND_URL}/stop`, { method: 'POST' })
     } catch {
       // best-effort
     }

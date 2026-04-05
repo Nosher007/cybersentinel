@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const WS_URL = 'ws://localhost:8000/ws'
+// In production, VITE_BACKEND_URL is the Cloud Run URL (set in GitHub Actions)
+// In development, falls back to localhost
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
+const WS_URL = BACKEND_URL.replace(/^http/, 'ws') + '/ws'
 
 const HEALTHY_METRICS = {
   txPerSec: 42,

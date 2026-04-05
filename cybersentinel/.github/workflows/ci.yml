@@ -1,4 +1,4 @@
-name: CI
+name: CI / CD
 
 on:
   push:
@@ -7,22 +7,114 @@ on:
     branches: [main]
 
 jobs:
+  # ── Job 1: Run backend tests ────────────────────────────────────────────────
   test:
+    name: Backend Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cybersentinel
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('cybersentinel/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Run tests
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          CHROMA_PATH: ./chroma-data
           ENVIRONMENT: test
-        run: pytest backend/tests/ simulation/tests/ -v
+        run: pytest backend/tests/ simulation/tests/ -v --tb=short
+
+  # ── Job 2: Deploy backend to Cloud Run (push to main only) ─────────────────
+  deploy-backend:
+    name: Deploy Backend → Cloud Run
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        working-directory: cybersentinel
+        run: |
+          IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cybersentinel/backend:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cybersentinel/backend:${{ github.sha }}"
+          gcloud run deploy cybersentinel-backend \
+            --image "$IMAGE" \
+            --region ${{ vars.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" \
+            --set-env-vars "ENVIRONMENT=production" \
+            --set-env-vars "CHROMA_PATH=/app/chroma-data" \
+            --set-env-vars "CHROMA_COLLECTION_NAME=cybersentinel_kb" \
+            --port 8000
+
+  # ── Job 3: Deploy frontend to Firebase Hosting (push to main only) ──────────
+  deploy-frontend:
+    name: Deploy Frontend → Firebase
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: cybersentinel/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: cybersentinel/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: cybersentinel/frontend
+        env:
+          # Point the frontend at the live Cloud Run backend URL
+          VITE_BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          entryPoint: cybersentinel/frontend

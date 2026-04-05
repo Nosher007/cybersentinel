@@ -17,9 +17,12 @@ COPY backend/ backend/
 COPY simulation/ simulation/
 
 # Bake ChromaDB into the image at build time (Option A)
-# CHROMA_PATH must match the default in chromadb_client.py
 ENV CHROMA_PATH=/app/chroma-data
-RUN python -m backend.rag.seed_knowledge_base
+RUN mkdir -p /app/chroma-data && \
+    python -m backend.rag.seed_knowledge_base && \
+    echo "--- ChromaDB files after seed ---" && \
+    find /app/chroma-data -type f && \
+    echo "--- end ---"
 
 # ── Stage 3: final runtime image ─────────────────────────────────────────────
 FROM deps AS final

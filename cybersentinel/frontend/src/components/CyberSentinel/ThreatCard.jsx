@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const SEVERITY_CONFIG = {
   CRITICAL: { bg: 'bg-red-900/40', border: 'border-red-600', text: 'text-red-400', badge: 'bg-red-600' },
@@ -9,11 +9,17 @@ const SEVERITY_CONFIG = {
 
 export function ThreatCard({ threat, attackStartTime, threatDetectedAt }) {
   const [visible, setVisible] = useState(false)
+  const cardRef = useRef(null)
 
   useEffect(() => {
-    // Trigger slide-in animation on mount
     const frame = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    if (cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
   }, [])
 
   if (!threat) return null
@@ -23,6 +29,7 @@ export function ThreatCard({ threat, attackStartTime, threatDetectedAt }) {
 
   return (
     <div
+      ref={cardRef}
       className={`transition-all duration-500 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       } ${cfg.bg} border ${cfg.border} rounded-lg p-4`}

@@ -51,8 +51,12 @@ class SimulationEngine:
                 "Call stop() first."
             )
 
-        # Reset queue for new run
-        self._queue = asyncio.Queue()
+        # Drain old queue instead of creating new one — keeps broadcast_from_engine's reference valid
+        while not self.queue.empty():
+            try:
+                self.queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
         scenario = SCENARIO_REGISTRY[scenario_id](speed_multiplier=speed_multiplier)
         self.current_scenario_id = scenario_id
         self.is_running = True
@@ -71,10 +75,16 @@ class SimulationEngine:
 
     async def _run_scenario(self, scenario) -> None:
         try:
+            print(f"[ENGINE] Starting scenario run loop, queue id={id(self.queue)}")
             async for log in scenario.run():
+                print(f"[ENGINE] Putting log, queue id={id(self.queue)}, qsize={self.queue.qsize()}")
                 await self.queue.put(log)
         except asyncio.CancelledError:
             raise
         finally:
             self.is_running = False
             self.current_scenario_id = None
+
+
+# Module-level singleton — import this, not a new SimulationEngine()
+shared_engine = SimulationEngine()

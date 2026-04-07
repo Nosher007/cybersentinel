@@ -6,17 +6,48 @@
   padding: 0;
 }
 
-body {
-  background-color: #0a0e1a;
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  background-color: #050505;
   color: #e2e8f0;
+}
+
+body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  min-height: 100vh;
+/* ── Glassmorphism panel ──────────────────────────────── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
 }
 
+.glass-panel-active {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.08);
+}
+
+/* ── Scrollbar inside panels ─────────────────────────── */
+.panel-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Animations ──────────────────────────────────────── */
 @keyframes radar-sweep {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
@@ -33,7 +64,22 @@ body {
   100% { transform: scale(1); }
 }
 
+@keyframes subtle-glow {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .radar-sweep {
+  animation: radar-sweep 3s linear infinite;
+}
+
+.radar-line {
+  transform-origin: 64px 64px;
   animation: radar-sweep 3s linear infinite;
 }
 
@@ -43,4 +89,12 @@ body {
 
 .step-pop {
   animation: step-pop 0.4s ease-out forwards;
+}
+
+.subtle-glow {
+  animation: subtle-glow 2s ease-in-out infinite;
+}
+
+.slide-up {
+  animation: slide-up 0.4s ease-out forwards;
 }

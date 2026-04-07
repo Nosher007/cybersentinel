@@ -35,29 +35,29 @@ export function AttackStatusBanner({ attackInfo, isAttackRunning }) {
   }[intensity] ?? 'text-slate-400'
 
   return (
-    <div className="mb-4 sm:mb-5 rounded-lg bg-red-950/40 border border-red-800/60 px-3 sm:px-5 py-3 flex items-center gap-3 sm:gap-6 flex-wrap">
+    <div className="rounded-xl bg-red-950/30 border border-red-800/40 px-4 py-2.5 flex items-center gap-4 flex-wrap text-xs">
       <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-red-400 text-xs font-bold tracking-widest uppercase">Attack In Progress</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+        <span className="text-red-400 font-bold tracking-widest uppercase text-[10px]">Attack In Progress</span>
       </div>
-      <div className="flex items-center gap-1 text-xs text-slate-400">
+      <div className="flex items-center gap-1 text-slate-400">
         <span className="text-slate-600">Scenario:</span>
-        <span className="text-slate-300 font-semibold capitalize">{scenario}</span>
+        <span className="text-slate-300 font-medium capitalize">{scenario}</span>
       </div>
       {attackType && (
-        <div className="flex items-center gap-1 text-xs text-slate-400">
+        <div className="flex items-center gap-1 text-slate-400">
           <span className="text-slate-600">Type:</span>
           <span className="text-slate-300 capitalize">{attackType}</span>
         </div>
       )}
       {target && (
-        <div className="flex items-center gap-1 text-xs text-slate-400">
+        <div className="flex items-center gap-1 text-slate-400">
           <span className="text-slate-600">Target:</span>
           <span className="text-slate-300 font-mono">{target}</span>
         </div>
       )}
       {intensity && (
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center gap-1">
           <span className="text-slate-600">Intensity:</span>
           <span className={`font-bold ${intensityColor}`}>{intensity}</span>
         </div>

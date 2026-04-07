@@ -51,6 +51,10 @@ export function useWebSocket() {
           case 'threat_detected':
             setThreat(msg.data)
             break
+          case 'severity_update':
+            // Update threat severity/score in place if threat already shown
+            setThreat((prev) => prev ? { ...prev, ...msg.data } : msg.data)
+            break
           case 'remediation_plan':
             setRemediation(msg.data)
             break

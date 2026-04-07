@@ -5,7 +5,6 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
   const [currentText, setCurrentText] = useState(null)
   const [visible, setVisible] = useState(false)
 
-  // After threat arrives, use the threat narration
   useEffect(() => {
     if (threat) {
       const text = getNarrationFromThreat(threat)
@@ -19,13 +18,11 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
     }
   }, [threat])
 
-  // During simulation, update narration from the latest meaningful log
   useEffect(() => {
-    if (threat) return  // threat narration takes over
+    if (threat) return
     if (!logs || logs.length === 0) return
     const latest = logs[logs.length - 1]
     const text = getNarrationFromLog(latest)
-    // null means "no narration for this tag" — don't overwrite a good message
     if (text !== null && text !== undefined && text !== currentText) {
       setVisible(false)
       setTimeout(() => {
@@ -35,14 +32,12 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
     }
   }, [logs])
 
-  // Show "Monitoring..." immediately when attack starts
   useEffect(() => {
     if (isAttackRunning && !threat) {
       setVisible(true)
     }
   }, [isAttackRunning])
 
-  // Reset when attack stops
   useEffect(() => {
     if (!isAttackRunning && !threat) {
       setCurrentText(null)
@@ -54,32 +49,31 @@ export function NarrationBox({ logs, threat, isAttackRunning }) {
 
   if (!isAttackRunning && !threat) {
     return (
-      <div className="bg-[#0d1a2e] border border-[#1e2d4a] rounded-lg p-4 flex items-center gap-3">
-        <div className="text-2xl">🔍</div>
-        <p className="text-slate-500 text-sm">
-          All systems nominal. Type an attack prompt below to start a simulation.
+      <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3 flex items-center gap-3">
+        <p className="text-slate-600 text-xs">
+          All systems nominal. Waiting for simulation.
         </p>
       </div>
     )
   }
 
   return (
-    <div className={`rounded-lg p-4 border-l-4 transition-all duration-300 ${
+    <div className={`rounded-lg p-3 border-l-2 transition-all duration-300 ${
       isThreatNarration
-        ? 'bg-red-950/30 border-l-red-500 border border-red-900/40'
-        : 'bg-[#0d1a2e] border-l-amber-500 border border-[#1e2d4a]'
+        ? 'bg-red-950/20 border-l-red-500 border border-red-900/30'
+        : 'bg-white/[0.02] border-l-amber-500 border border-white/[0.04]'
     }`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           {isThreatNarration ? 'AI Analysis' : "What's happening"}
         </span>
         {!isThreatNarration && (
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
         )}
       </div>
-      <p className={`text-sm leading-relaxed transition-all duration-300 ${
+      <p className={`text-xs leading-relaxed transition-all duration-300 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
-      } ${isThreatNarration ? 'text-slate-300' : 'text-slate-400'}`}>
+      } ${isThreatNarration ? 'text-slate-300' : 'text-slate-500'}`}>
         {currentText || 'Monitoring...'}
       </p>
     </div>

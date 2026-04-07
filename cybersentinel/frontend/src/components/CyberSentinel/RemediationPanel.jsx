@@ -36,35 +36,28 @@ export function RemediationPanel({ remediation }) {
   let shownSoFar = 0
 
   return (
-    <div className="bg-[#0d1a12] border border-emerald-900 rounded-lg p-4">
+    <div className="bg-emerald-900/10 border border-emerald-800/30 rounded-lg p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-emerald-400 text-sm font-semibold">Remediation Plan</span>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-emerald-400 text-xs font-semibold">Remediation Plan</span>
         {remediation.plan_id && (
-          <span className="text-slate-600 text-xs font-mono">{remediation.plan_id}</span>
+          <span className="text-slate-700 text-[10px] font-mono">{remediation.plan_id}</span>
         )}
       </div>
 
       {remediation.summary && (
-        <p className="text-slate-400 text-xs mb-4 leading-relaxed">{remediation.summary}</p>
+        <p className="text-slate-400 text-xs mb-3 leading-relaxed">{remediation.summary}</p>
       )}
 
       {/* Immediate steps */}
       {immediateSteps.length > 0 && (
-        <div className="mb-4">
-          <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">Immediate Actions</div>
-          <div className="space-y-2">
+        <div className="mb-3">
+          <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2">Immediate</div>
+          <div className="space-y-1.5">
             {immediateSteps.map((step, i) => {
               shownSoFar++
               const show = visibleCount >= shownSoFar
-              return (
-                <StepRow
-                  key={`imm-${i}`}
-                  step={step}
-                  show={show}
-                  color="emerald"
-                />
-              )
+              return <StepRow key={`imm-${i}`} step={step} show={show} color="emerald" />
             })}
           </div>
         </div>
@@ -72,20 +65,13 @@ export function RemediationPanel({ remediation }) {
 
       {/* Hardening steps */}
       {hardeningSteps.length > 0 && (
-        <div className="mb-4">
-          <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">Hardening Steps</div>
-          <div className="space-y-2">
+        <div className="mb-3">
+          <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2">Hardening</div>
+          <div className="space-y-1.5">
             {hardeningSteps.map((step, i) => {
               shownSoFar++
               const show = visibleCount >= shownSoFar
-              return (
-                <StepRow
-                  key={`hard-${i}`}
-                  step={step}
-                  show={show}
-                  color="cyan"
-                />
-              )
+              return <StepRow key={`hard-${i}`} step={step} show={show} color="cyan" />
             })}
           </div>
         </div>
@@ -93,13 +79,13 @@ export function RemediationPanel({ remediation }) {
 
       {/* CVE references */}
       {cveRefs.length > 0 && visibleCount >= allSteps.length && (
-        <div className="mt-3 pt-3 border-t border-emerald-900/50">
-          <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">CVE References</div>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-3 pt-3 border-t border-emerald-900/40">
+          <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-2">CVE Refs</div>
+          <div className="flex flex-wrap gap-1.5">
             {cveRefs.map((cve) => (
               <span
                 key={cve}
-                className="text-xs font-mono bg-[#111827] border border-[#1e2d4a] text-slate-400 px-2 py-0.5 rounded"
+                className="text-[10px] font-mono bg-white/[0.03] border border-white/[0.06] text-slate-400 px-2 py-0.5 rounded"
               >
                 {cve}
               </span>
@@ -127,16 +113,16 @@ function StepRow({ step, show, color }) {
   return (
     <div className={`transition-all duration-500 ${
       show ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
-    } flex gap-3 items-start`}>
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${bgColors[color]} ${popped ? 'step-pop' : ''}`}>
-        <span className="text-white text-xs font-bold">
+    } flex gap-2.5 items-start`}>
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${bgColors[color]} ${popped ? 'step-pop' : ''}`}>
+        <span className="text-white text-[9px] font-bold">
           {checked ? '✓' : step.order}
         </span>
       </div>
       <div>
-        <div className="text-slate-300 text-xs font-semibold">{step.action}</div>
+        <div className="text-slate-300 text-xs font-medium">{step.action}</div>
         {step.detail && (
-          <div className="text-slate-500 text-xs mt-0.5 leading-relaxed">{step.detail}</div>
+          <div className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">{step.detail}</div>
         )}
       </div>
     </div>

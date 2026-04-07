@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from simulation.engine import SimulationEngine, SCENARIO_REGISTRY
+from simulation.engine import shared_engine, SCENARIO_REGISTRY
 
 try:
     from backend.agents.prompt_interpreter import AttackPromptInterpreter
@@ -20,7 +20,8 @@ router = APIRouter()
 _is_test = os.getenv("ENVIRONMENT", "").lower() == "test"
 limiter = Limiter(key_func=get_remote_address, enabled=not _is_test)
 
-engine = SimulationEngine()
+engine = shared_engine
+print(f"[ATTACK MODULE] engine id={id(engine)}")
 
 MAX_PROMPT_LENGTH = 300
 
@@ -56,7 +57,9 @@ async def start_attack(request: Request, req: AttackRequest):
         raise HTTPException(status_code=500, detail="Attack interpretation failed. Please try again.")
 
     scenario_id = interpreted.scenario_id
+    print(f"[ATTACK] Starting scenario. Engine id={id(engine)}, queue id={id(engine.queue)}")
     await engine.start(scenario_id)
+    print(f"[ATTACK] After start. Engine.is_running={engine.is_running}, queue id={id(engine.queue)}")
 
     return {
         "status": "started",

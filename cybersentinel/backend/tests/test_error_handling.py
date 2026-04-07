@@ -74,31 +74,39 @@ class TestInvalidPromptHandling:
 
 class TestPipelineErrorBroadcasting:
 
-    def test_run_agent_pipeline_returns_error_dict_on_failure(self):
-        from routers.websocket import _run_agent_pipeline
-        with patch("routers.websocket.build_pipeline") as mock_build:
-            mock_pipeline = MagicMock()
-            mock_pipeline.invoke.side_effect = Exception("LLM timeout")
-            mock_build.return_value = mock_pipeline
+    def test_parse_logs_returns_list_on_valid_input(self):
+        from routers.websocket import _parse_logs
+        with patch("routers.websocket.LogParserAgent") as mock_cls:
+            mock_agent = MagicMock()
+            mock_agent.parse_batch.return_value = [MagicMock()]
+            mock_cls.return_value = mock_agent
 
-            result = _run_agent_pipeline([("some log", "auth")])
+            result = _parse_logs([("some log", "auth")])
             assert result is not None
-            assert "error" in result
+            assert len(result) == 1
 
-    def test_run_agent_pipeline_empty_logs_returns_none(self):
-        from routers.websocket import _run_agent_pipeline
-        result = _run_agent_pipeline([])
-        assert result is None
+    def test_parse_logs_empty_input_returns_empty(self):
+        from routers.websocket import _parse_logs
+        with patch("routers.websocket.LogParserAgent") as mock_cls:
+            mock_agent = MagicMock()
+            mock_agent.parse_batch.return_value = []
+            mock_cls.return_value = mock_agent
 
-    def test_run_agent_pipeline_orchestrator_error_returns_error_dict(self):
-        from routers.websocket import _run_agent_pipeline
-        with patch("routers.websocket.build_pipeline") as mock_build:
-            mock_pipeline = MagicMock()
-            mock_pipeline.invoke.return_value = {"error": "ThreatDetector failed: timeout"}
-            mock_build.return_value = mock_pipeline
+            result = _parse_logs([])
+            assert result == []
 
-            result = _run_agent_pipeline([("log line", "auth")])
-            assert "error" in result
+    def test_detect_threat_raises_propagates(self):
+        from routers.websocket import _detect_threat
+        with patch("routers.websocket.ThreatDetectorAgent") as mock_cls:
+            mock_agent = MagicMock()
+            mock_agent.detect.side_effect = Exception("LLM timeout")
+            mock_cls.return_value = mock_agent
+
+            try:
+                _detect_threat([MagicMock()])
+                assert False, "Should have raised"
+            except Exception as e:
+                assert "LLM timeout" in str(e)
 
 
 # ── WebSocket connection handling ─────────────────────────────────────────────

@@ -11,7 +11,7 @@ function colorClass(line) {
   for (const { pattern, className } of LOG_COLORS) {
     if (pattern.test(line)) return className
   }
-  return 'text-slate-400'
+  return 'text-slate-500'
 }
 
 export function LogTerminal({ logs }) {
@@ -27,13 +27,13 @@ export function LogTerminal({ logs }) {
 
   return (
     <div>
-      <div className="text-xs text-slate-500 font-mono uppercase tracking-widest mb-2">Live Logs</div>
+      <div className="text-[10px] text-slate-600 font-mono uppercase tracking-widest mb-1.5">Live Logs</div>
       <div
         ref={containerRef}
-        className="bg-[#070b14] border border-[#1e2d4a] rounded-lg p-3 h-36 sm:h-48 overflow-y-auto font-mono text-xs space-y-0.5"
+        className="bg-black/40 border border-white/[0.04] rounded-lg p-2.5 h-32 sm:h-40 overflow-y-auto panel-scroll font-mono text-[11px] leading-relaxed space-y-px"
       >
         {logs.map((line, i) => (
-          <div key={i} className={`leading-relaxed whitespace-pre-wrap break-all ${colorClass(line)}`}>
+          <div key={i} className={`whitespace-pre-wrap break-all ${colorClass(line)}`}>
             {line}
           </div>
         ))}

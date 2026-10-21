@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege for the GITHUB_TOKEN; deploys authenticate to GCP separately
+permissions:
+  contents: read
+
 jobs:
   # ── Job 1: Run backend tests ────────────────────────────────────────────────
   test:

@@ -5,12 +5,25 @@ so the threat card appears mid-attack and remediation follows shortly after.
 """
 import asyncio
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import os
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 router = APIRouter()
 
 # Fire pipeline after this many logs are collected (lower = earlier AI response)
 PIPELINE_TRIGGER_THRESHOLD = 5
+
+# CORS does not apply to WebSockets, so check the browser Origin header ourselves.
+# Clients that send no Origin (CLI tools, tests) are allowed; they could spoof it anyway.
+ALLOWED_WS_ORIGINS = {
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+}
+
+# Clients only ever send short keepalive pings
+MAX_CLIENT_MESSAGE_CHARS = 1024
+
+# Keep the in-memory threat history bounded
+MAX_STORED_THREATS = 100
 
 
 class ConnectionManager:
@@ -145,6 +158,7 @@ async def _run_pipeline_staged(collected_logs: list[tuple[str, str]]):
             "blast_radius": scored_threat.blast_radius,
         }
         threat_store.append(threat_record)
+        del threat_store[:-MAX_STORED_THREATS]
         await manager.broadcast({"type": "threat_detected", "data": threat_record})
 
         # Stage 4: Remediate → broadcast steps (these populate one by one on frontend)
@@ -254,10 +268,19 @@ async def broadcast_from_engine():
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
+    origin = ws.headers.get("origin")
+    if origin and origin not in ALLOWED_WS_ORIGINS:
+        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await manager.connect(ws)
     try:
         while True:
             data = await ws.receive_text()
+            if len(data) > MAX_CLIENT_MESSAGE_CHARS:
+                await ws.close(code=status.WS_1009_MESSAGE_TOO_BIG)
+                manager.disconnect(ws)
+                return
             await ws.send_text(json.dumps({"type": "ack", "message": data}))
     except WebSocketDisconnect:
         manager.disconnect(ws)

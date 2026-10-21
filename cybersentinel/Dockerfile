@@ -42,8 +42,12 @@ ENV CHROMA_COLLECTION_NAME=cybersentinel_kb
 ENV ENVIRONMENT=production
 ENV LOG_LEVEL=INFO
 
+# Run as an unprivileged user (ChromaDB needs write access to its data dir)
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose FastAPI port
 EXPOSE 8000
 
-# Start Uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start Uvicorn (cap WebSocket frames at 64 KB; clients only send short pings)
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--ws-max-size", "65536"]

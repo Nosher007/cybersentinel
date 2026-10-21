@@ -24,18 +24,14 @@ export function useWebSocket() {
   const wsRef = useRef(null)
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-    wsRef.current = ws
+    let ws = null
+    let pingTimer = null
+    let reconnectTimer = null
+    let retries = 0
+    let firstConnect = true
+    let unmounted = false
 
-    ws.onopen = () => {
-      setIsConnected(true)
-      // Clear any stale simulation left over from a previous page session
-      fetch(`${BACKEND_URL}/stop`, { method: 'POST' }).catch(() => {})
-    }
-    ws.onclose = () => setIsConnected(false)
-    ws.onerror = () => setIsConnected(false)
-
-    ws.onmessage = (event) => {
+    const handleMessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
         switch (msg.type) {
@@ -72,7 +68,45 @@ export function useWebSocket() {
       }
     }
 
-    return () => ws.close()
+    // Cloud Run and proxies drop idle or long-lived sockets, so reconnect with
+    // backoff and send a keepalive ping instead of staying "Disconnected".
+    const connect = () => {
+      ws = new WebSocket(WS_URL)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        retries = 0
+        setIsConnected(true)
+        if (firstConnect) {
+          firstConnect = false
+          // Clear any stale simulation left over from a previous page session
+          fetch(`${BACKEND_URL}/stop`, { method: 'POST' }).catch(() => {})
+        }
+        clearInterval(pingTimer)
+        pingTimer = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.send('ping')
+        }, 25000)
+      }
+      ws.onclose = () => {
+        setIsConnected(false)
+        clearInterval(pingTimer)
+        if (unmounted) return
+        const delay = Math.min(1000 * 2 ** retries, 10000)
+        retries += 1
+        reconnectTimer = setTimeout(connect, delay)
+      }
+      ws.onerror = () => ws.close()
+      ws.onmessage = handleMessage
+    }
+
+    connect()
+
+    return () => {
+      unmounted = true
+      clearInterval(pingTimer)
+      clearTimeout(reconnectTimer)
+      if (ws) ws.close()
+    }
   }, [])
 
   const clearState = useCallback(() => {

@@ -152,3 +152,21 @@ class TestSimulationEngineEdgeCases:
         engine = SimulationEngine()
         with pytest.raises(ValueError):
             await engine.start("account_takeover", speed_multiplier=-1)
+
+
+class TestEngineRunTimer:
+
+    def test_running_for_is_zero_when_idle(self):
+        engine = SimulationEngine()
+        assert engine.started_at is None
+        assert engine.running_for() == 0.0
+
+    @pytest.mark.asyncio
+    async def test_started_at_set_on_start_and_cleared_on_stop(self):
+        engine = SimulationEngine()
+        await engine.start("ddos_attack", speed_multiplier=100)
+        assert engine.started_at is not None
+        assert engine.running_for() >= 0.0
+        await engine.stop()
+        assert engine.started_at is None
+        assert engine.running_for() == 0.0

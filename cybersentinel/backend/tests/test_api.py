@@ -154,3 +154,44 @@ class TestStopEndpoint:
         mock_engine.stop = AsyncMock()
         client.post("/stop")
         mock_engine.stop.assert_called_once()
+
+
+class TestStaleScenario:
+
+    @patch("routers.attack.AttackPromptInterpreter")
+    @patch("routers.attack.engine")
+    def test_stale_scenario_is_stopped_before_new_attack(self, mock_engine, mock_interpreter_class):
+        from routers.attack import STALE_SCENARIO_SECONDS
+
+        mock_engine.is_running = True
+        mock_engine.current_scenario_id = "ddos_attack"
+        mock_engine.running_for.return_value = STALE_SCENARIO_SECONDS + 1
+
+        async def fake_stop():
+            mock_engine.is_running = False
+        mock_engine.stop = AsyncMock(side_effect=fake_stop)
+        mock_engine.start = AsyncMock()
+        mock_interp = MagicMock()
+        mock_interp.interpret.return_value = MagicMock(
+            scenario_id="account_takeover",
+            attack_type=MagicMock(value="brute_force"),
+            target_service="auth",
+            intensity="high",
+            reasoning="test",
+        )
+        mock_interpreter_class.return_value = mock_interp
+
+        response = client.post("/attack", json={"prompt": "brute force login"})
+        mock_engine.stop.assert_called_once()
+        assert response.status_code == 200
+
+    @patch("routers.attack.AttackPromptInterpreter")
+    @patch("routers.attack.engine")
+    def test_recent_scenario_still_returns_409(self, mock_engine, mock_interpreter_class):
+        mock_engine.is_running = True
+        mock_engine.current_scenario_id = "ddos_attack"
+        mock_engine.running_for.return_value = 30.0
+        mock_engine.stop = AsyncMock()
+        response = client.post("/attack", json={"prompt": "brute force login"})
+        assert response.status_code == 409
+        mock_engine.stop.assert_not_called()

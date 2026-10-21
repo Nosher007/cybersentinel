@@ -5,6 +5,7 @@ background task, and puts logs into an asyncio.Queue for the WS handler.
 Queue is created lazily to avoid event loop binding issues in tests.
 """
 import asyncio
+import time
 from simulation.scenarios.account_takeover import AccountTakeoverScenario
 from simulation.scenarios.transaction_fraud import TransactionFraudScenario
 from simulation.scenarios.sql_injection import SQLInjectionScenario
@@ -26,7 +27,14 @@ class SimulationEngine:
         self._queue: asyncio.Queue | None = None
         self.is_running: bool = False
         self.current_scenario_id: str | None = None
+        self.started_at: float | None = None
         self._task: asyncio.Task | None = None
+
+    def running_for(self) -> float:
+        """Seconds since the current scenario started (0 when idle)."""
+        if not self.is_running or self.started_at is None:
+            return 0.0
+        return time.monotonic() - self.started_at
 
     @property
     def queue(self) -> asyncio.Queue:
@@ -60,6 +68,7 @@ class SimulationEngine:
         scenario = SCENARIO_REGISTRY[scenario_id](speed_multiplier=speed_multiplier)
         self.current_scenario_id = scenario_id
         self.is_running = True
+        self.started_at = time.monotonic()
         self._task = asyncio.create_task(self._run_scenario(scenario))
 
     async def stop(self) -> None:
@@ -71,6 +80,7 @@ class SimulationEngine:
                 pass
         self.is_running = False
         self.current_scenario_id = None
+        self.started_at = None
         self._task = None
 
     async def _run_scenario(self, scenario) -> None:
@@ -84,6 +94,7 @@ class SimulationEngine:
         finally:
             self.is_running = False
             self.current_scenario_id = None
+            self.started_at = None
 
 
 # Module-level singleton — import this, not a new SimulationEngine()

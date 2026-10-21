@@ -4,7 +4,7 @@
 
 An **AI-powered cybersecurity simulation** built with LangChain/LangGraph. Attack a fictional fintech company in natural language and watch a multi-agent AI pipeline detect, classify, and remediate the threat in real time.
 
-Deployed on Google Cloud Run (backend) and Firebase Hosting (frontend), with 332 automated tests running in CI on every push.
+Deployed on Google Cloud Run (backend) and Firebase Hosting (frontend), with 336 automated tests running in CI on every push.
 
 ---
 
@@ -104,15 +104,15 @@ Nightly DAG that fetches new CVEs from the NVD API, parses and validates them, g
 
 ## Testing
 
-393 pytest tests, written largely test-first:
+397 pytest tests, written largely test-first:
 
 | Suite | Tests | Covers |
 |---|---|---|
-| `simulation/tests/` | 207 | Engine, log generators, NovaPay context, each of the 5 attack scenarios |
-| `backend/tests/` | 125 | Agents (structured outputs, LLM mocked), API + WebSocket, error handling, ChromaDB retrieval |
+| `simulation/tests/` | 209 | Engine, log generators, NovaPay context, each of the 5 attack scenarios |
+| `backend/tests/` | 127 | Agents (structured outputs, LLM mocked), API + WebSocket, error handling, ChromaDB retrieval |
 | `airflow/tests/` | 61 | CVE fetch, parse, embed, validate, and DAG wiring |
 
-The backend and simulation suites (332 tests) run in GitHub Actions on every push and gate deployment.
+The backend and simulation suites (336 tests) run in GitHub Actions on every push and gate deployment.
 
 ```bash
 cd cybersentinel

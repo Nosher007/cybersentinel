@@ -25,6 +25,10 @@ print(f"[ATTACK MODULE] engine id={id(engine)}")
 
 MAX_PROMPT_LENGTH = 300
 
+# Longest scenario runs ~5 min. A run older than this was abandoned (tab closed,
+# socket dropped) and should not block new attacks.
+STALE_SCENARIO_SECONDS = 420
+
 
 class AttackRequest(BaseModel):
     prompt: str
@@ -41,6 +45,11 @@ async def start_attack(request: Request, req: AttackRequest):
             status_code=400,
             detail=f"Prompt too long. Maximum {MAX_PROMPT_LENGTH} characters."
         )
+
+    running_for = engine.running_for() if engine.is_running else 0.0
+    if isinstance(running_for, (int, float)) and running_for > STALE_SCENARIO_SECONDS:
+        print(f"[ATTACK] Auto-stopping stale scenario '{engine.current_scenario_id}' after {running_for:.0f}s")
+        await engine.stop()
 
     if engine.is_running:
         raise HTTPException(

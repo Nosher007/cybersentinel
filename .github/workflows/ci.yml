@@ -88,7 +88,10 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --env-vars-file /tmp/env.yaml \
-            --port 8000
+            --port 8000 \
+            --timeout 3600 \
+            --max-instances 1 \
+            --session-affinity
 
   # ── Job 3: Deploy frontend to Firebase Hosting (push to main only) ──────────
   deploy-frontend:

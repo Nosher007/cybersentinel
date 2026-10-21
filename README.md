@@ -1,6 +1,10 @@
 # CyberSentinel
 
-An **AI-powered cybersecurity simulation game** built with LangChain/LangGraph. Attack a fictional fintech company in natural language and watch a multi-agent AI pipeline detect, classify, and remediate the threat in real time.
+**Live demo:** https://cybersentinel-prod.web.app
+
+An **AI-powered cybersecurity simulation** built with LangChain/LangGraph. Attack a fictional fintech company in natural language and watch a multi-agent AI pipeline detect, classify, and remediate the threat in real time.
+
+Deployed on Google Cloud Run (backend) and Firebase Hosting (frontend), with 332 automated tests running in CI on every push.
 
 ---
 
@@ -52,19 +56,21 @@ An **AI-powered cybersecurity simulation game** built with LangChain/LangGraph. 
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + TailwindCSS |
+| Frontend | React 19 + Tailwind CSS 4 (Vite) |
 | Realtime | WebSockets (FastAPI native) |
-| Backend | FastAPI + Uvicorn |
+| Backend | FastAPI + Uvicorn (async) |
 | Agent Orchestration | LangGraph (StateGraph) |
 | LLM Chains | LangChain |
-| LLM Model | GPT-4o / Claude 3.5 Sonnet |
-| Vector DB | ChromaDB (local) |
-| Embeddings | OpenAI text-embedding-ada-002 |
+| LLM Model | Google Gemini 2.5 Flash (structured outputs) |
+| Vector DB | ChromaDB |
+| Embeddings | ChromaDB default embedding function |
 | Data Models | Pydantic v2 |
 | Simulation | Python + Faker |
-| Pipeline | Apache Airflow (nightly CVE updates) |
+| Pipeline | Apache Airflow (nightly CVE updates from NVD) |
 | Containerization | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
+| Hosting | Google Cloud Run (backend), Firebase Hosting (frontend) |
+| CI/CD | GitHub Actions (test → build → deploy) |
+| Guardrails | Prompt length limit, rate limiting (slowapi), CORS allowlist |
 
 ---
 
@@ -92,7 +98,26 @@ An **AI-powered cybersecurity simulation game** built with LangChain/LangGraph. 
 
 ## Airflow CVE Pipeline
 
-Nightly DAG that fetches new CVEs from the NVD API, generates embeddings, and upserts them into ChromaDB — keeping the agent knowledge base current.
+Nightly DAG that fetches new CVEs from the NVD API, parses and validates them, generates embeddings, and upserts them into ChromaDB — keeping the agent knowledge base current. The knowledge base is seeded with 20 well-known CVEs and 5 OWASP reference entries.
+
+---
+
+## Testing
+
+393 pytest tests, written largely test-first:
+
+| Suite | Tests | Covers |
+|---|---|---|
+| `simulation/tests/` | 207 | Engine, log generators, NovaPay context, each of the 5 attack scenarios |
+| `backend/tests/` | 125 | Agents (structured outputs, LLM mocked), API + WebSocket, error handling, ChromaDB retrieval |
+| `airflow/tests/` | 61 | CVE fetch, parse, embed, validate, and DAG wiring |
+
+The backend and simulation suites (332 tests) run in GitHub Actions on every push and gate deployment.
+
+```bash
+cd cybersentinel
+pytest backend/tests/ simulation/tests/
+```
 
 ---
 
@@ -102,7 +127,7 @@ Nightly DAG that fetches new CVEs from the NVD API, generates embeddings, and up
 git clone https://github.com/Nosher007/cybersentinel.git
 cd cybersentinel
 cp cybersentinel/.env.example cybersentinel/.env
-# Add your OPENAI_API_KEY and NVD_API_KEY
+# Add your GOOGLE_API_KEY (Gemini) and NVD_API_KEY
 
 docker-compose -f cybersentinel/docker-compose.yml up
 ```
@@ -118,9 +143,11 @@ docker-compose -f cybersentinel/docker-compose.yml up
 | Phase | Status |
 |---|---|
 | Phase 1 — Foundation (FastAPI, models, WebSocket) | Complete |
-| Phase 2 — Simulation Engine (5 scenarios, log generators) | In Progress |
-| Phase 3 — LangGraph Agent Pipeline | In Progress |
-| Phase 4 — Airflow CVE Pipeline | In Progress |
-| Phase 5 — Full Backend Integration | Pending |
-| Phase 6 — React Frontend | Pending |
-| Phase 7 — Deployment (GCP + Firebase) | Pending |
+| Phase 2 — Simulation Engine (5 scenarios, log generators) | Complete |
+| Phase 3 — LangGraph Agent Pipeline | Complete |
+| Phase 4 — Airflow CVE Pipeline | Complete |
+| Phase 5 — Full Backend Integration | Complete |
+| Phase 6 — React Frontend | Complete |
+| Phase 7 — Deployment (GCP + Firebase) | Complete — [live demo](https://cybersentinel-prod.web.app) |
+
+**Next:** adversarial testing of the agents themselves (prompt injection via attack prompts and retrieved CVE text), and evaluation of output quality beyond functional tests.
